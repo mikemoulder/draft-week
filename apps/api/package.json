@@ -10,18 +10,24 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx --env-file-if-exists=../../.env src/migrate.ts"
+    "db:migrate": "tsx --env-file-if-exists=../../.env src/migrate.ts",
+    "test:db": "sg docker -c \"docker run -d --rm --name draftweek-testdb -e POSTGRES_PASSWORD=test -p 127.0.0.1:5441:5432 postgres:16-alpine\" && sleep 3",
+    "test:db:stop": "sg docker -c \"docker stop draftweek-testdb\""
   },
   "dependencies": {
+    "@cardano-foundation/cardano-verify-datasignature": "1.0.11",
     "@draftweek/shared": "*",
     "@hono/node-server": "2.1.5",
     "@hono/zod-validator": "0.9.1",
+    "@scure/base": "2.4.0",
     "drizzle-orm": "0.45.4",
     "hono": "4.13.13",
     "postgres": "3.4.9",
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@emurgo/cardano-message-signing-nodejs": "1.1.0",
+    "@emurgo/cardano-serialization-lib-nodejs": "17.0.0",
     "@types/node": "22.20.5",
     "drizzle-kit": "0.31.11",
     "esbuild": "0.28.2",
