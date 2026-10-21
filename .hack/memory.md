@@ -61,6 +61,9 @@ Strike testnet              4 markets, near-empty book. Useless for demos. Read 
 Public account data         fills, positions, account by account_id / blockchain_address / vault_id, no auth
 Fill liquidation flag       auto_close_type in ('liquidation','adl','bankrupt','if_transfer','vault_withdrawal')
 Forward polling             /v2/history/fill?since_trade_id=  (ascending), limit max 1000
+Sub-accounts                some traders trade through sub-accounts; their fills are not public (sub_account_id
+                            needs auth). Leaderboard counts include them, our fills do not. Pool uses our fills only
+Fill paging                 fillsBefore: newest first, fromId = fill id. fillsSince: ascending by trade_id. limit<=1000
 Builder connect             needs a registered builder code (fake code -> 404 "builder code not found")
 strike-builder-reference    no license. Learn from it, do not copy it
 VPS                         shared with other apps; 31 GB free disk (79% used); sudo needs the user
@@ -80,7 +83,8 @@ Leaderboard time_range      only 24h, 7d, 30d, all_time
 
 ## What is real, what is recorded
 
-**Real:** every trader, trade, liquidation and point comes from Strike mainnet, ingested into our database.
+**Real:** every trader, trade, liquidation and point comes from Strike mainnet, ingested into our database
+(worker every 5 min; backfill reaches the start of the week before last).
 **Recorded:** nothing yet. The replay week is real historical data, not a fixture.
 
 ## Verification

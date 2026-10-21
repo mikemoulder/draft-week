@@ -1,32 +1,31 @@
 # Handoff
 
-**As of:** `310cc09` · Wed 2026-10-21 ~21:15 UTC · auth session
+**As of:** `4812a76` · Wed 2026-10-21 ~20:40 UTC · data session
 
 ## Next step
 
-Data phase. In `apps/api/src/db/schema.ts` add traders, fills, ingest_state, weeks, trader_days; generate
-migration `data`. Then `apps/api/src/strike.ts` (the only Strike caller: UA header, base paths, retries) and
-`src/domain/ingest/` (leaderboard -> traders, fills with since_trade_id, trader_days recompute) with tests
-against the throwaway db, then `src/worker.ts` + an `ingest` service in docker-compose.yml.
-
-Waiting on the user: a real-wallet sign-in on https://draft-week.vercel.app/signin (Lace/Eternl or Phantom).
+Leagues phase. Schema: leagues, league_members, picks, lineups (+ migration `leagues`). Domain in
+`apps/api/src/domain/leagues/`: create (8 seats, owner seat 0, bots fill on start), join by invite code,
+snake draft turn order, bot auto-pick (best available by prev-week points with jitter, prefer active),
+lineup rules (3 starters, 2 bench, captain is a starter), and league state with matchups + standings from
+trader_days (captain x1.5, auto-sub). Routes per the architecture brief. Tests against the throwaway db.
 
 ## Current status
 
-**Working (production):** wallet sign-in end to end through Vercel -> VPS; server-side sessions; logout.
-**Deployed:** web https://draft-week.vercel.app (310cc09), API https://draftweek-api.duckdns.org/health (194a620).
-**Build:** green.
+**Working (production):** sign-in; ingest every 5 min (540 traders, ~139k fills, weeks 2026-10-05..19);
+`GET /api/weeks` and `GET /api/weeks/:id/pool` (227 draftable for the replay week 2026-10-12).
+**Deployed:** web https://draft-week.vercel.app (310cc09), API 4812a76.
+**Build:** green. 41 API tests.
 
 ## Verified
 
 ```text
 Ran:     TEST_DATABASE_URL=postgres://postgres:test@127.0.0.1:5441/postgres npx vitest run  (apps/api)
-Result:  24 passed: proxy secret + health (5), address/message/signature units (9), sign-in flow on Postgres (10)
-Ran:     production check through https://draft-week.vercel.app/api with a generated Cardano wallet
-Result:  challenge -> verify 200, Set-Cookie arrives via Vercel (HttpOnly; Secure; SameSite=Lax),
-         /me 200 with matching address, logout 204, /me after logout 401. Test user deleted afterwards
-Ran:     web eslint, typecheck, build -> clean
-Not yet: a real browser wallet extension (CIP-30 signData from Lace/Eternl, Phantom signMessage)
+Result:  41 passed (sign-in 19, scoring 7, ingest 7, pool 3, app 5), three runs in a row
+Ran:     first production ingest: 540 traders, 138,615 fills, 0 errors, 226 s; incremental runs ~18 s
+Checked: replay week 2026-10-12 has 197 traders with 5..3000 trades, 95 liquidations, points spread evenly 1..10
+Checked: https://draft-week.vercel.app/api/weeks and /api/weeks/2026-10-12/pool return real data; bad week id -> 400
+Not yet: a real browser wallet extension
 ```
 
 ## Do not repeat
@@ -48,7 +47,7 @@ Entry-fee prize pools, referral funding    rejected: zero-sum / only pays on new
 ```text
 1. Foundation        DONE
 2. Auth              DONE (Cardano + Solana). Ethereum deferred (6 of 260 traders). Real-wallet check pending
-3. Data              schema, ingest worker, trader_days, scoring + tests, backfill                    (~10)
+3. Data              DONE (ingest worker, scoring, pool, weeks)
 4. Leagues           create/join, draft turns + bots, lineup, league state + tests                    (~10)
 5. UI                dashboard, draft room, lineup, matchup replay (the aha), trader page             (~12)
 6. Hardening         states, mobile, README, demo video, make repo public, submit                    (~6)
