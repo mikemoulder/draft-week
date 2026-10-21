@@ -1,4 +1,4 @@
-# Draft Week backend on the VPS: Postgres + API (+ ingest worker, added with the data phase).
+# Draft Week backend on the VPS: Postgres, the API, and the Strike ingest worker.
 # Secrets come from ./.env (gitignored, chmod 600). See .env.example.
 name: draftweek
 
@@ -22,6 +22,7 @@ services:
     mem_limit: 512m
 
   api:
+    image: draftweek-api
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -38,7 +39,25 @@ services:
         condition: service_healthy
     ports:
       - "127.0.0.1:3940:3940"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3940/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
     mem_limit: 512m
+
+  # Same image as the API. Starts once the API is healthy, so migrations have already run.
+  ingest:
+    image: draftweek-api
+    restart: unless-stopped
+    command: ["node", "dist/worker.js"]
+    environment:
+      DATABASE_URL: postgres://draftweek:${POSTGRES_PASSWORD}@db:5432/draftweek
+      INGEST_INTERVAL_MS: "300000"
+    depends_on:
+      api:
+        condition: service_healthy
+    mem_limit: 256m
 
 volumes:
   db-data:

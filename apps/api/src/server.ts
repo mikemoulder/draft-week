@@ -3,6 +3,7 @@ import { sql as raw } from "drizzle-orm";
 import { createApp } from "./app.js";
 import { createDb } from "./db/client.js";
 import { createAuthService } from "./domain/auth/service.js";
+import { lastSuccessfulIngest } from "./domain/ingest/run.js";
 import { loadEnv } from "./env.js";
 
 const env = loadEnv();
@@ -19,7 +20,7 @@ const app = createApp({
       return false;
     }
   },
-  lastIngestAt: async () => null,
+  lastIngestAt: () => lastSuccessfulIngest(db),
   auth: createAuthService(db, { origin: env.WEB_ORIGIN }),
   secureCookie: env.WEB_ORIGIN.startsWith("https://"),
 });

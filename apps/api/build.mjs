@@ -7,7 +7,7 @@ const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), 
 const external = Object.keys(pkg.dependencies).filter((d) => !d.startsWith("@draftweek/"));
 
 await build({
-  entryPoints: ["src/server.ts", "src/migrate.ts"],
+  entryPoints: ["src/server.ts", "src/migrate.ts", "src/worker.ts"],
   outdir: "dist",
   bundle: true,
   platform: "node",
