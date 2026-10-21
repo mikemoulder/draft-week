@@ -1,3 +1,4 @@
+import { AccountBar } from "@/components/account-bar";
 import { ApiStatus } from "@/components/api-status";
 
 export default function Home() {
@@ -7,6 +8,7 @@ export default function Home() {
       <p className="text-lg text-zinc-600 dark:text-zinc-400">
         Fantasy football for trading. Draft real Strike traders, and their real trades score your points.
       </p>
+      <AccountBar />
       <ApiStatus />
     </main>
   );
