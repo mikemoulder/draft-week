@@ -1,4 +1,16 @@
-import { pgTable, text, timestamp, uuid, index } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  boolean,
+  doublePrecision,
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  smallint,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 // ── Accounts ────────────────────────────────────────────────────────────────
 
@@ -46,4 +58,88 @@ export const sessions = pgTable(
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
   },
   (t) => [index("sessions_user_idx").on(t.userId)],
+);
+
+// ── Strike data (written by the ingest worker) ─────────────────────────────
+
+export const traders = pgTable("traders", {
+  accountId: text("account_id").primaryKey(),
+  name: text("name").notNull(),
+  adaHandle: text("ada_handle"),
+  nickname: text("nickname"),
+  blockchainAddress: text("blockchain_address"),
+  optedOut: boolean("opted_out").notNull().default(false),
+  firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Equity observations, at most hourly per trader. Daily returns are divided by the equity the
+// trader had going into that day, not by today's balance.
+export const traderEquity = pgTable(
+  "trader_equity",
+  {
+    accountId: text("account_id").notNull(),
+    observedAt: timestamp("observed_at", { withTimezone: true }).notNull(),
+    equity: doublePrecision("equity").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.accountId, t.observedAt] })],
+);
+
+export const fills = pgTable(
+  "fills",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey(),
+    tradeId: bigint("trade_id", { mode: "number" }).notNull(),
+    orderId: bigint("order_id", { mode: "number" }).notNull(),
+    accountId: text("account_id").notNull(),
+    symbol: text("symbol").notNull(),
+    side: text("side").notNull(),
+    role: text("role").notNull(),
+    price: doublePrecision("price").notNull(),
+    size: doublePrecision("size").notNull(),
+    realizedPnl: doublePrecision("realized_pnl").notNull(),
+    fee: doublePrecision("fee").notNull(),
+    leverage: integer("leverage"),
+    autoCloseType: text("auto_close_type"),
+    isCopy: boolean("is_copy").notNull().default(false),
+    ts: timestamp("ts", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("fills_account_ts_idx").on(t.accountId, t.ts)],
+);
+
+export const ingestState = pgTable("ingest_state", {
+  accountId: text("account_id").primaryKey(),
+  lastTradeId: bigint("last_trade_id", { mode: "number" }),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+  lastError: text("last_error"),
+});
+
+export const ingestRuns = pgTable("ingest_runs", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+  traders: integer("traders"),
+  fillsInserted: integer("fills_inserted"),
+  error: text("error"),
+});
+
+// One row per trader per day of a week (Monday 00:00 UTC start). Recomputed by ingest.
+export const traderDays = pgTable(
+  "trader_days",
+  {
+    weekId: text("week_id").notNull(),
+    accountId: text("account_id").notNull(),
+    day: smallint("day").notNull(),
+    pnl: doublePrecision("pnl").notNull(),
+    trades: integer("trades").notNull(),
+    closes: integer("closes").notNull(),
+    wins: integer("wins").notNull(),
+    liquidations: integer("liquidations").notNull(),
+    firstLiquidationAt: timestamp("first_liquidation_at", { withTimezone: true }),
+    avgLeverage: doublePrecision("avg_leverage"),
+    equityRef: doublePrecision("equity_ref").notNull(),
+    points: integer("points").notNull(),
+    scoringVersion: smallint("scoring_version").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.weekId, t.accountId, t.day] }), index("trader_days_account_idx").on(t.accountId)],
 );
