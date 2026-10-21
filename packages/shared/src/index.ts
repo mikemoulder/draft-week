@@ -78,7 +78,10 @@ export type WeekInfo = z.infer<typeof WeekInfo>;
 
 // ── Leagues ─────────────────────────────────────────────────────────────────
 
-export const LeagueStatus = z.enum(["drafting", "locked", "live", "final"]);
+// setup: joining open, draft not started. drafting: picks in progress. ready: drafted, lineups
+// editable, waiting for the week (or, for a finished week, for the owner to play it).
+// live: week in progress, lineups locked. final: results complete.
+export const LeagueStatus = z.enum(["setup", "drafting", "ready", "live", "final"]);
 export type LeagueStatus = z.infer<typeof LeagueStatus>;
 
 export const CreateLeagueRequest = z.object({
@@ -144,12 +147,28 @@ export const Matchup = z.object({
 });
 export type Matchup = z.infer<typeof Matchup>;
 
+export const LeagueSummary = z.object({
+  id: z.string(),
+  name: z.string(),
+  weekId: z.string(),
+  status: LeagueStatus,
+  members: z.number(),
+  myPoints: z.number().nullable(),
+  myRank: z.number().nullable(),
+});
+export type LeagueSummary = z.infer<typeof LeagueSummary>;
+
 export const LeagueState = z.object({
   id: z.string(),
   name: z.string(),
   weekId: z.string(),
   status: LeagueStatus,
   inviteCode: z.string(),
+  size: z.number(),
+  ownerMemberId: z.string(),
+  myMemberId: z.string().nullable(),
+  // Days of the week whose results are visible: 7 when final, today's index + 1 when live, else 0.
+  daysRevealed: z.number(),
   members: z.array(Member),
   picks: z.array(Pick),
   onTheClock: z.string().nullable(),
@@ -157,6 +176,7 @@ export const LeagueState = z.object({
   matchups: z.array(Matchup),
   standings: z.array(z.object({ memberId: z.string(), points: z.number() })),
   points: z.array(DayPoints),
+  traders: z.array(z.object({ accountId: z.string(), name: z.string() })),
 });
 export type LeagueState = z.infer<typeof LeagueState>;
 
