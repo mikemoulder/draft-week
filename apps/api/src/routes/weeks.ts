@@ -3,9 +3,15 @@ import type { Db } from "../db/client.js";
 import { draftPool, playableWeeks } from "../domain/traders/pool.js";
 import { isWeekId } from "../domain/scoring/weeks.js";
 import type { AppEnv } from "../http.js";
+import type { ShowcaseService } from "../domain/leagues/showcase.js";
 
-export function weekRoutes(db: Db, now: () => Date = () => new Date()) {
+export function weekRoutes(db: Db, now: () => Date = () => new Date(), showcase?: ShowcaseService) {
   const r = new Hono<AppEnv>();
+
+  r.get("/showcase", async (c) => {
+    const s = showcase ? await showcase.get() : null;
+    return s ? c.json(s) : c.json({ error: "no finished week to show yet" }, 404);
+  });
 
   r.get("/weeks", async (c) => c.json(await playableWeeks(db, now())));
 

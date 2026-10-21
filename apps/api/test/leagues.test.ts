@@ -7,6 +7,7 @@ import { createDb } from "../src/db/client.js";
 import { traderDays, traders, users } from "../src/db/schema.js";
 import { createAuthService } from "../src/domain/auth/service.js";
 import { createLeagueService, type Viewer } from "../src/domain/leagues/service.js";
+import { createShowcase } from "../src/domain/leagues/showcase.js";
 
 const url = process.env.TEST_DATABASE_URL;
 const NOW = new Date("2026-10-21T12:00:00Z"); // week 2026-10-12 is finished: replay leagues
@@ -142,6 +143,24 @@ describe.skipIf(!url)("leagues", () => {
     const after = must(await leagues.state(s.id, bob));
     expect(after.picks).toHaveLength(1);
     expect(after.onTheClock).toBe(after.myMemberId); // now bob's turn
+  });
+
+  it("builds last week's game of the week from real data, without storing anything", async () => {
+    const showcase = createShowcase(db, { now: () => NOW });
+    const first = await showcase.get();
+    expect(first).not.toBeNull();
+    const { league, featuredMatchupId, stats } = first!;
+    expect(league).toMatchObject({ weekId: "2026-10-12", status: "final", daysRevealed: 7, myMemberId: null });
+    expect(league.members).toHaveLength(8);
+    expect(new Set(league.picks.map((p) => p.accountId)).size).toBe(40);
+    expect(league.matchups.map((m) => m.id)).toContain(featuredMatchupId);
+    expect(league.standings).toHaveLength(8);
+    expect(stats.tradersFollowed).toBe(48);
+
+    const again = await createShowcase(db, { now: () => NOW }).get();
+    expect(again?.league.picks).toEqual(league.picks); // same week, same seeds, same league
+    const [{ n }] = (await db.execute(sql`select count(*)::int as n from leagues`)) as unknown as [{ n: number }];
+    expect(n).toBe(0);
   });
 
   it("refuses weeks that cannot host a league", async () => {

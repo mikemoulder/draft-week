@@ -5,6 +5,7 @@ import type { AuthService } from "./domain/auth/service.js";
 import { session, type AppEnv } from "./http.js";
 import type { LeagueService } from "./domain/leagues/service.js";
 import { leagueRoutes } from "./routes/leagues.js";
+import type { ShowcaseService } from "./domain/leagues/showcase.js";
 import { authRoutes } from "./routes/auth.js";
 import { weekRoutes } from "./routes/weeks.js";
 import type { Db } from "./db/client.js";
@@ -17,6 +18,7 @@ export type AppDeps = {
   auth?: AuthService;
   db?: Db;
   leagues?: LeagueService;
+  showcase?: ShowcaseService;
   now?: () => Date;
   secureCookie?: boolean;
 };
@@ -56,7 +58,7 @@ export function createApp(deps: AppDeps) {
     app.use("*", session(deps.auth));
     app.route("/", authRoutes(deps.auth, { secureCookie: deps.secureCookie ?? true }));
   }
-  if (deps.db) app.route("/", weekRoutes(deps.db, deps.now));
+  if (deps.db) app.route("/", weekRoutes(deps.db, deps.now, deps.showcase));
   if (deps.leagues) app.route("/", leagueRoutes(deps.leagues));
 
   app.notFound((c) => c.json({ error: "not found" }, 404));

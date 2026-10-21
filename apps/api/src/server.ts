@@ -5,6 +5,7 @@ import { createDb } from "./db/client.js";
 import { createAuthService } from "./domain/auth/service.js";
 import { lastSuccessfulIngest } from "./domain/ingest/run.js";
 import { createLeagueService } from "./domain/leagues/service.js";
+import { createShowcase } from "./domain/leagues/showcase.js";
 import { loadEnv } from "./env.js";
 
 const env = loadEnv();
@@ -26,6 +27,7 @@ const app = createApp({
   secureCookie: env.WEB_ORIGIN.startsWith("https://"),
   db,
   leagues: createLeagueService(db),
+  showcase: createShowcase(db),
 });
 
 const server = serve({ fetch: app.fetch, port: env.PORT, hostname: "0.0.0.0" }, (info) => {
