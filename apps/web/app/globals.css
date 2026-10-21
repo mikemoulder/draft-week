@@ -1,26 +1,600 @@
+/* Design tokens and primitives for Tailwind v4.
+ *
+ * Copy to src/app/globals.css. Then replace ONLY the block between
+ * TOKENS:START and TOKENS:END with the direction chosen in DESIGN.md
+ * (references/directions.md has a paste-in block for each one). Everything
+ * below the tokens reads them, so the whole site changes with that block.
+ *
+ * Three guards against slop are built in:
+ *   1. The default Tailwind palette is removed. A palette class like bg-sky-500 renders
+ *      nothing. The palette is the tokens, or it is not on the page.
+ *   2. The default shadow scale is removed. shadow-2xl renders nothing.
+ *      Elevation is shadow-card, shadow-pop or shadow-frame.
+ *   3. Radius is named by component (rounded-tile, rounded-panel), so a
+ *      card and a button cannot drift into the same arbitrary corner.
+ *
+ * Tailwind v3? This file will not work. See references/scaffold.md.
+ */
+
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, .theme-dark, .theme-dark *));
+
+/* ── TOKENS:START ───────────── direction: bold-signal, dark only (DESIGN.md §6) ── */
+/* One accent: scoreboard yellow means "the lead" (whoever is ahead, points as they land).
+   Danger red is the red card: a liquidation. Neither appears on chrome or buttons. */
+:root,
+[data-theme="dark"],
+.theme-dark {
+  color-scheme: dark;
+  --ground: #0b0b0b;
+  --surface: #151515;
+  --surface-2: #1e1e1e;
+  --panel: #111111;
+  --tile: #151515;
+  --fill: rgb(242 240 233 / 0.06);
+  --fill-strong: rgb(242 240 233 / 0.12);
+  --glass: rgb(11 11 11 / 0.92);
+  --glass-line: #f2f0e9;
+  --fg: #f2f0e9;
+  --fg-soft: #d6d3ca;
+  --fg-mute: #9a978f;
+  --fg-faint: #6b6963;
+  --line: #2a2a2a;
+  --line-strong: #f2f0e9;
+  --action: #f2f0e9;
+  --on-action: #0b0b0b;
+  --action-hover: #d6d3ca;
+  --accent: #ffd23f;
+  --accent-soft: rgb(255 210 63 / 0.12);
+  --on-accent-soft: #ffe48a;
+  --success: #5ee08a;
+  --success-soft: rgb(94 224 138 / 0.12);
+  --warning: #ff9f43;
+  --warning-soft: rgb(255 159 67 / 0.12);
+  --danger: #ff4d5e;
+  --danger-soft: rgb(255 77 94 / 0.14);
+  --focus: #f2f0e9;
+  --elev-card: none;
+  --elev-pop: 6px 6px 0 #f2f0e9;
+  --elev-frame: 0 0 0 1px #f2f0e9;
+  --field-a: #1e1e1e;
+  --field-b: #0b0b0b;
+  --field-c: #2a2400;
+}
+
+/* The inverted band (one per page): bone ground, black type. */
+.theme-bone {
+  color-scheme: light;
+  --ground: #f2f0e9;
+  --surface: #e8e5dc;
+  --panel: #f7f5ef;
+  --tile: #e8e5dc;
+  --fill: rgb(11 11 11 / 0.06);
+  --fg: #0b0b0b;
+  --fg-soft: #2a2a2a;
+  --fg-mute: #57554f;
+  --fg-faint: #85827a;
+  --line: #d2cec3;
+  --line-strong: #0b0b0b;
+  --action: #0b0b0b;
+  --on-action: #f2f0e9;
+  --action-hover: #2a2a2a;
+  --focus: #0b0b0b;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --display-weight: 800;
+  --display-stretch: 125%;
+  --display-xl: clamp(56px, 9vw, 152px);
+  --display-xl-lh: 0.88;
+  --display-xl-tracking: -0.05em;
+  --display-l: clamp(36px, 5vw, 72px);
+  --display-l-lh: 0.95;
+  --display-l-tracking: -0.04em;
+  --display-m: clamp(24px, 2.6vw, 36px);
+  --display-m-lh: 1.05;
+  --display-m-tracking: -0.03em;
+  --title: 20px;
+  --title-lh: 1.2;
+  --title-tracking: -0.02em;
+  --title-weight: 700;
+  --lead: clamp(17px, 1.4vw, 19px);
+  --lead-lh: 1.5;
+  --body: 16px;
+  --body-lh: 1.55;
+  --body-weight: 400;
+  --small: 14px;
+  --small-lh: 1.5;
+  --label: 12px;
+  --label-lh: 1.2;
+  --label-tracking: 0.06em;
+  --label-weight: 500;
+  --label-transform: uppercase;
+  --label-family: var(--font-mono);
+  --ui-weight: 700;
+  --num-weight: 800;
+  --r-chip: 0px;
+  --r-button: 0px;
+  --r-input: 0px;
+  --r-tile: 0px;
+  --r-panel: 0px;
+  --r-feature: 0px;
+  --page-max: 1440px;
+  --gutter: clamp(16px, 2.5vw, 40px);
+  --section-y: clamp(72px, 9vw, 128px);
+  --stack: 40px;
+  --motion-out: cubic-bezier(0.7, 0, 0.3, 1);
+  --motion-in-out: cubic-bezier(0.7, 0, 0.3, 1);
+  --dur-micro: 100ms;
+  --dur-ui: 160ms;
+  --dur-reveal: 280ms;
+  --reveal-y: 0px;
+}
+/* ── TOKENS:END ───────────────────────────────────────────────────────── */
+
+/* Projector mode. CONFIG demo.surface: projector, add class="projector" to
+   <html>. Muted text rises to about 7:1 and hairlines thicken so they
+   survive the beam. */
+.projector {
+  --fg-mute: color-mix(in oklab, var(--fg) 78%, var(--ground));
+  --fg-faint: color-mix(in oklab, var(--fg) 62%, var(--ground));
+  --line: color-mix(in oklab, var(--fg) 22%, var(--ground));
+  --line-strong: color-mix(in oklab, var(--fg) 40%, var(--ground));
+  --body: 17px;
+}
+
+/* ── The palette is the tokens ─────────────────────────────────────────── */
+@theme {
+  --color-*: initial;
+  --shadow-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-panel: var(--panel);
+  --color-tile: var(--tile);
+  --color-fill: var(--fill);
+  --color-fill-strong: var(--fill-strong);
+  --color-glass: var(--glass);
+  --color-glass-line: var(--glass-line);
+  --color-fg: var(--fg);
+  --color-fg-soft: var(--fg-soft);
+  --color-fg-mute: var(--fg-mute);
+  --color-fg-faint: var(--fg-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-action: var(--action);
+  --color-on-action: var(--on-action);
+  --color-action-hover: var(--action-hover);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent-soft: var(--on-accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-focus: var(--focus);
+
+  --font-sans: var(--font-brand-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-brand-display, var(--font-brand-sans)), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-brand-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --radius-chip: var(--r-chip);
+  --radius-button: var(--r-button);
+  --radius-input: var(--r-input);
+  --radius-tile: var(--r-tile);
+  --radius-panel: var(--r-panel);
+  --radius-feature: var(--r-feature);
+
+  --shadow-card: var(--elev-card);
+  --shadow-pop: var(--elev-pop);
+  --shadow-frame: var(--elev-frame);
+
+  --container-page: var(--page-max);
+  --container-text: 720px;
+  --container-prose: 65ch;
+
+  --ease-out: var(--motion-out);
+  --ease-in-out: var(--motion-in-out);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Base ──────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    background: var(--ground);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: var(--body);
+    line-height: var(--body-lh);
+    font-weight: var(--body-weight);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4 {
+    font-weight: var(--display-weight);
+    text-wrap: balance;
+  }
+  p, li, dd {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: var(--fill-strong);
+    color: var(--fg);
+  }
+  /* Never ship an invisible focus ring. Judges tab through things. */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+  [hidden] {
+    display: none !important;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ── Type roles ────────────────────────────────────────────────────────────
+   Semantic level (h1, h2) and visual size are separate decisions. An h2 can
+   wear t-display-xl; a p can wear t-title. Pick the level for the outline
+   and the role for the look. */
+@utility t-display-xl {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-stretch: var(--display-stretch);
+  font-size: var(--display-xl);
+  line-height: var(--display-xl-lh);
+  letter-spacing: var(--display-xl-tracking);
+  text-wrap: balance;
+}
+@utility t-display-l {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-stretch: var(--display-stretch);
+  font-size: var(--display-l);
+  line-height: var(--display-l-lh);
+  letter-spacing: var(--display-l-tracking);
+  text-wrap: balance;
+}
+@utility t-display-m {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-stretch: var(--display-stretch);
+  font-size: var(--display-m);
+  line-height: var(--display-m-lh);
+  letter-spacing: var(--display-m-tracking);
+  text-wrap: balance;
+}
+@utility t-title {
+  font-weight: var(--title-weight);
+  font-size: var(--title);
+  line-height: var(--title-lh);
+  letter-spacing: var(--title-tracking);
+}
+@utility t-lead {
+  font-size: var(--lead);
+  line-height: var(--lead-lh);
+  color: var(--fg-mute);
+  text-wrap: pretty;
+}
+@utility t-body {
+  font-size: var(--body);
+  line-height: var(--body-lh);
+}
+@utility t-small {
+  font-size: var(--small);
+  line-height: var(--small-lh);
+}
+@utility t-label {
+  font-family: var(--label-family);
+  font-size: var(--label);
+  line-height: var(--label-lh);
+  letter-spacing: var(--label-tracking);
+  font-weight: var(--label-weight);
+  text-transform: var(--label-transform);
+  color: var(--fg-faint);
+}
+@utility t-num {
+  font-family: var(--font-display);
+  font-stretch: var(--display-stretch);
+  font-weight: var(--num-weight);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────────
+   One height per size, one radius, five variants. One action button per
+   section; everything else is quiet, ghost or text. */
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 44px;
+    padding: 0 22px;
+    border-radius: var(--r-button);
+    border: 1px solid transparent;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: var(--ui-weight);
+    line-height: 1;
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    text-decoration: none;
+    transition:
+      background-color var(--dur-micro) ease,
+      border-color var(--dur-micro) ease,
+      color var(--dur-micro) ease,
+      opacity var(--dur-micro) ease,
+      transform var(--dur-micro) var(--motion-out);
+  }
+  .btn:active {
+    transform: scale(0.98);
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .btn[aria-busy="true"] {
+    position: relative;
+    color: transparent;
+    pointer-events: none;
+    opacity: 1; /* busy is not disabled: keep the button at full strength */
+  }
+  .btn[aria-busy="true"]::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    border: 2px solid currentColor;
+    border-color: var(--btn-ink, currentColor) transparent var(--btn-ink, currentColor) transparent;
+    animation: btn-spin 0.8s linear infinite;
+  }
+  @keyframes btn-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .btn-sm {
+    height: 36px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+  .btn-lg {
+    height: 48px;
+    padding: 0 28px;
+    font-size: 15px;
+  }
+  .btn-icon {
+    width: 44px;
+    padding: 0;
+  }
+  .btn-sm.btn-icon {
+    width: 36px;
+  }
+  .btn-action {
+    --btn-ink: var(--on-action);
+    background: var(--action);
+    color: var(--on-action);
+  }
+  .btn-action:hover:not(:disabled) {
+    background: var(--action-hover);
+  }
+  .btn-quiet {
+    --btn-ink: var(--fg);
+    background: var(--fill);
+    color: var(--fg);
+  }
+  .btn-quiet:hover:not(:disabled) {
+    background: var(--fill-strong);
+  }
+  .btn-ghost {
+    --btn-ink: var(--fg);
+    background: transparent;
+    color: var(--fg);
+    border-color: var(--line-strong);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: var(--fg);
+  }
+  .btn-text {
+    --btn-ink: var(--fg);
+    background: transparent;
+    color: var(--fg);
+    padding-inline: 12px;
+  }
+  .btn-text:hover:not(:disabled) {
+    background: var(--fill);
+  }
+  .btn-accent {
+    --btn-ink: var(--on-accent-soft);
+    background: var(--accent-soft);
+    color: var(--on-accent-soft);
+  }
+  .btn-accent:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--accent-soft) 80%, var(--accent));
+  }
+  .btn-danger {
+    --btn-ink: #ffffff;
+    background: var(--danger);
+    color: #ffffff;
+  }
+
+  /* Inputs: one calm style. */
+  .field-input {
+    height: 48px;
+    width: 100%;
+    border-radius: var(--r-input);
+    border: 1px solid var(--line-strong);
+    background: var(--panel);
+    padding: 0 14px;
+    font: inherit;
+    font-size: 15px;
+    color: var(--fg);
+    transition: border-color var(--dur-micro) ease, box-shadow var(--dur-micro) ease;
+  }
+  .field-input::placeholder {
+    color: var(--fg-faint);
+  }
+  .field-input:focus {
+    outline: none;
+    border-color: var(--fg);
+    box-shadow: 0 0 0 3px var(--fill-strong);
+  }
+  .field-input[aria-invalid="true"] {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px var(--danger-soft);
+  }
+
+  /* Text link with an arrow that moves on hover. */
+  .arrow-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: var(--ui-weight);
+    color: var(--fg);
+    text-decoration: none;
+  }
+  .arrow-link > [data-arrow] {
+    transition: transform var(--dur-micro) var(--motion-out);
+  }
+  .arrow-link:hover > [data-arrow] {
+    transform: translateX(3px);
+  }
+
+  /* Skeleton: the shape of the real content, softly breathing. */
+  .skeleton {
+    border-radius: 6px;
+    background: var(--fill-strong);
+    animation: skeleton-breathe 1.6s ease-in-out infinite;
+  }
+  @keyframes skeleton-breathe {
+    50% {
+      opacity: 0.55;
+    }
+  }
+}
+
+/* ── Atmosphere ────────────────────────────────────────────────────────────
+   A .field is a soft blurred light inside a .panel: the one place a
+   gradient is allowed, mixed only from the --field tokens. One per screen. */
+.panel-atmos {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.field {
+  position: absolute;
+  inset: -12%;
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(48px);
+  background:
+    radial-gradient(60% 70% at 85% 100%, var(--field-c) 0%, transparent 70%),
+    radial-gradient(50% 60% at 15% 20%, var(--field-a) 0%, transparent 70%),
+    radial-gradient(45% 55% at 60% 75%, var(--field-b) 0%, transparent 70%),
+    linear-gradient(135deg, var(--ground) 0%, var(--surface) 100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .field-drift {
+    animation: field-drift 22s ease-in-out infinite alternate;
+  }
+  @keyframes field-drift {
+    to {
+      transform: translate3d(-2.5%, -1.5%, 0) scale(1.06);
+    }
+  }
+}
+
+/* ── Motion: progressive, never a hidden page ───────────────────────────────
+   Content is visible by default. Only when JS is running (html.js, set by
+   the boot script in motion.tsx) does a [data-reveal] start hidden, and
+   html.reveal-all shows everything if the app never hydrates. */
+[data-reveal] {
+  transition:
+    opacity var(--dur-reveal) var(--motion-out),
+    transform var(--dur-reveal) var(--motion-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.js [data-reveal]:not([data-in]) {
+  opacity: 0;
+  transform: translate3d(0, var(--reveal-y), 0);
+}
+.reveal-all [data-reveal] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Line art that draws itself: <path class="draw" pathLength={1} /> inside a
+   <LineArt>. Stagger with style={{ "--d": "0.2s" }}. */
+.js [data-armed] .draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.js [data-armed][data-in] .draw {
+  animation: draw 0.9s var(--motion-in-out) var(--d, 0s) forwards;
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Marquee: two copies of one list, edges masked, paused offscreen. */
+.marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .marquee-track {
+    animation: marquee var(--marquee-dur, 40s) linear infinite;
+  }
+  .marquee:hover .marquee-track,
+  [data-paused] .marquee-track {
+    animation-play-state: paused;
+  }
+}
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .js [data-reveal]:not([data-in]) {
+    opacity: 1;
+    transform: none;
+  }
+  .js [data-armed] .draw {
+    stroke-dashoffset: 0;
+  }
 }
