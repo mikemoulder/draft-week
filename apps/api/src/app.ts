@@ -4,6 +4,8 @@ import type { Health } from "@draftweek/shared";
 import type { AuthService } from "./domain/auth/service.js";
 import type { AppEnv } from "./http.js";
 import { authRoutes } from "./routes/auth.js";
+import { weekRoutes } from "./routes/weeks.js";
+import type { Db } from "./db/client.js";
 
 export type AppDeps = {
   proxySecret: string;
@@ -11,6 +13,8 @@ export type AppDeps = {
   pingDb: () => Promise<boolean>;
   lastIngestAt: () => Promise<number | null>;
   auth?: AuthService;
+  db?: Db;
+  now?: () => Date;
   secureCookie?: boolean;
 };
 
@@ -46,6 +50,7 @@ export function createApp(deps: AppDeps) {
   });
 
   if (deps.auth) app.route("/", authRoutes(deps.auth, { secureCookie: deps.secureCookie ?? true }));
+  if (deps.db) app.route("/", weekRoutes(deps.db, deps.now));
 
   app.notFound((c) => c.json({ error: "not found" }, 404));
   app.onError((err, c) => {

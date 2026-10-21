@@ -23,6 +23,7 @@ const app = createApp({
   lastIngestAt: () => lastSuccessfulIngest(db),
   auth: createAuthService(db, { origin: env.WEB_ORIGIN }),
   secureCookie: env.WEB_ORIGIN.startsWith("https://"),
+  db,
 });
 
 const server = serve({ fetch: app.fetch, port: env.PORT, hostname: "0.0.0.0" }, (info) => {
