@@ -45,6 +45,7 @@ export const TraderStyle = z.enum(["scalper", "swing", "degen", "steady"]);
 export type TraderStyle = z.infer<typeof TraderStyle>;
 
 export const WeekStats = z.object({
+  points: z.number(),
   pnl: z.number(),
   trades: z.number(),
   activeDays: z.number(),
@@ -61,6 +62,19 @@ export const PoolTrader = z.object({
   prevWeek: WeekStats,
 });
 export type PoolTrader = z.infer<typeof PoolTrader>;
+
+export const WeekStatus = z.enum(["final", "live", "upcoming"]);
+export type WeekStatus = z.infer<typeof WeekStatus>;
+
+// A week can host a league when its previous week has data to draft from.
+export const WeekInfo = z.object({
+  id: z.string(),
+  status: WeekStatus,
+  startsAt: z.number(),
+  endsAt: z.number(),
+  draftable: z.number(),
+});
+export type WeekInfo = z.infer<typeof WeekInfo>;
 
 // ── Leagues ─────────────────────────────────────────────────────────────────
 
