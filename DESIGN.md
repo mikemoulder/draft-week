@@ -12,7 +12,7 @@ When the design changes, change this file first, then the code.
 
 ```text
 THESIS      A trading-card club under floodlights: every Strike trader is a collectible card you draft into a five-card hand, and the week is a match you watch. It refuses to look like an exchange.
-WORLD       Warm night ground (plum-navy) lit by sunset floodlight glows; Bricolage Grotesque for display and numbers, Figtree for text; rounded cards with tier frames (bronze, silver, gold, legend); Phosphor duotone icons; sunset orange is the action, gold means the lead, red is the red card.
+WORLD       Flat warm night ground (plum-navy), no background gradients; Bricolage Grotesque for display and numbers, Figtree for text; rounded cards with tier frames (bronze, silver, gold, legend); Phosphor duotone icons; sunset orange is the action, gold means the lead, red is the red card.
 STORY       Hook with a fanned hand of this week's top real cards -> live facts with icons -> last week's game of the week, replayed -> how a trade becomes a point -> nothing is simulated -> play.
 FIRST VIEW  1440: headline left, lead + orange action, a fanned hand of five real trader cards right, glowing; facts strip at the fold. 375: headline, action, the hand as an overlapping row, facts.
 SIGNATURE   The trader card: crest generated from the account (colors, pattern, jersey number), an overall rating from last week, a tier frame, a style badge. It appears in the hero hand, the draft room and the replay.
@@ -71,7 +71,7 @@ signature than the scoreboard because it is the object people collect, compare a
 
 | Dial | Setting |
 |---|---|
-| Ground | warm dark: plum-navy `#15112A`, with two radial floodlight glows (orange, pink) at the top of the page |
+| Ground | warm dark plum-navy `#15112A`, flat. No glow fields or background gradients (user: "too much gradient, feels like slop") |
 | Type voice | Bricolage Grotesque 800 for display and every number (warm, quirky grotesque); Figtree 400/600/700 for text and labels |
 | Density | balanced: generous hero, dense cards |
 | Corners | round: cards 20, panels 24, tiles 16, buttons and chips as pills |
@@ -282,6 +282,8 @@ One site.
 
 - 2026-10-21: the worm (two cumulative lines) became a lead line. In close games the two cumulative lines overlap
   all week, which hides exactly the drama the signature exists to show; a margin line crosses zero at every lead change.
+- 2026-10-22: background glow fields removed; the ground is flat. Color comes from the cards, the action and the
+  data. The only gradient left is the legend tier's card frame, because it means "rarest".
 - 2026-10-21: the product is named FTL, Fantasy Trading League (was the working name Draft Week). Wordmark: FTL in
   the display face, with "Fantasy Trading League" as a mono label beside it in the nav.
 

@@ -518,10 +518,7 @@
   pointer-events: none;
   filter: blur(48px);
   background:
-    radial-gradient(60% 70% at 85% 100%, var(--field-c) 0%, transparent 70%),
-    radial-gradient(50% 60% at 15% 20%, var(--field-a) 0%, transparent 70%),
-    radial-gradient(45% 55% at 60% 75%, var(--field-b) 0%, transparent 70%),
-    linear-gradient(135deg, var(--ground) 0%, var(--surface) 100%);
+    var(--surface);
 }
 @media (prefers-reduced-motion: no-preference) {
   .field-drift {
@@ -685,24 +682,11 @@ html {
   }
 }
 
-/* ── Floodlights: the atmosphere field. Two warm glows at the top of a section. ── */
+/* ── Ground ─────────────────────────────────────────────────────────────────
+   The page is flat. No glow fields: color lives in the cards, the action and the data. ── */
 @layer components {
   .floodlight {
     position: relative;
-    isolation: isolate;
-  }
-  .floodlight::before {
-    content: "";
-    position: absolute;
-    inset: -20% -10% auto -10%;
-    height: 120%;
-    z-index: -1;
-    pointer-events: none;
-    background:
-      radial-gradient(40% 50% at 78% 18%, rgb(255 122 61 / 0.32), transparent 70%),
-      radial-gradient(35% 45% at 95% 55%, rgb(255 92 138 / 0.22), transparent 70%),
-      radial-gradient(30% 40% at 12% 0%, rgb(183 148 255 / 0.14), transparent 70%);
-    filter: blur(8px);
   }
 
   /* Trader cards */
@@ -730,9 +714,11 @@ html {
   .tcard[data-style="steady"] { --card-style: var(--style-steady); }
   .tcard-inner {
     border-radius: calc(var(--r-card) - 3px);
-    background:
-      radial-gradient(120% 70% at 50% 0%, color-mix(in oklab, var(--card-style) 38%, transparent), transparent 70%),
-      var(--panel);
+    /* flat two-tone, like a printed sticker card: style tint on top, plain below */
+    background: linear-gradient(
+      color-mix(in oklab, var(--card-style) 20%, var(--panel)) 0 52%,
+      var(--panel) 52% 100%
+    );
   }
   a.tcard:hover,
   button.tcard:hover:not(:disabled) {

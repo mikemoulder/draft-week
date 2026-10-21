@@ -19,7 +19,7 @@ export function Footer() {
       </Container>
       <p
         aria-hidden
-        className="t-num -mb-[0.28em] select-none bg-[linear-gradient(180deg,#ff7a3d,#ff5c8a_60%,transparent)] bg-clip-text text-center text-[34vw] leading-[0.8] tracking-[-0.05em] text-transparent opacity-25"
+        className="t-num -mb-[0.28em] select-none text-center text-[34vw] leading-[0.8] tracking-[-0.05em] text-surface-2"
       >
         FTL
       </p>
