@@ -180,6 +180,25 @@ export const LeagueState = z.object({
 });
 export type LeagueState = z.infer<typeof LeagueState>;
 
+// ── Showcase (public, landing page) ────────────────────────────────────────
+
+export const ShowcaseStats = z.object({
+  tradersFollowed: z.number(),
+  tradesLastWeek: z.number(),
+  liquidationsLastWeek: z.number(),
+  draftableThisWeek: z.number(),
+  lastIngestAt: z.number().nullable(),
+});
+export type ShowcaseStats = z.infer<typeof ShowcaseStats>;
+
+// A league of eight bots drafted from a finished week's real pool and scored on real trades.
+export const Showcase = z.object({
+  league: LeagueState,
+  featuredMatchupId: z.string(),
+  stats: ShowcaseStats,
+});
+export type Showcase = z.infer<typeof Showcase>;
+
 // ── Operations ──────────────────────────────────────────────────────────────
 
 export const Health = z.object({
