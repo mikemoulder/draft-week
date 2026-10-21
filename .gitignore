@@ -44,3 +44,6 @@ apps/*/.env.local
 backups/
 .vercel/
 coverage/
+
+# Frontend screenshots and measurements (skill tooling, not product)
+.design/
