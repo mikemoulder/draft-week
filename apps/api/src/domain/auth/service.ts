@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { and, eq, gt, isNull, lt, sql } from "drizzle-orm";
 import type { Chain, ChallengeResponse, Me } from "@draftweek/shared";
 import type { Db } from "../../db/client.js";
@@ -88,6 +89,18 @@ export function createAuthService(db: Db, opts: { origin: string; now?: () => Da
       const me = await loadMe(userId);
       if (!me) return fail(500, "account could not be loaded");
       return ok({ token, me });
+    },
+
+    /** A wallet-free account so anyone can try the game. Same session rules as a wallet sign-in. */
+    async guest(): Promise<{ token: string; me: Me }> {
+      const [user] = await db
+        .insert(users)
+        .values({ displayName: `Guest ${String(randomInt(1000, 10000))}` })
+        .returning({ id: users.id });
+      const userId = (user as { id: string }).id;
+      const token = newToken();
+      await db.insert(sessions).values({ id: hashToken(token), userId, expiresAt: new Date(now().getTime() + SESSION_TTL_MS) });
+      return { token, me: { id: userId, displayName: (await loadMe(userId))?.displayName ?? "Guest", wallets: [] } };
     },
 
     async userForToken(token: string): Promise<Me | null> {

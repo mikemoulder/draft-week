@@ -133,6 +133,16 @@ describe.skipIf(!url)("sign-in flow", () => {
     expect(((await junk.json()) as { error: string }).error).toMatch(/chain/);
   });
 
+  it("lets anyone play as a guest with a normal session and no wallet", async () => {
+    const res = await call("/auth/guest", { method: "POST" });
+    expect(res.status).toBe(200);
+    const me = (await res.json()) as Me;
+    expect(me.displayName).toMatch(/^Guest \d{4}$/);
+    expect(me.wallets).toEqual([]);
+    expect(res.headers.get("set-cookie")).toMatch(/HttpOnly/);
+    expect((await call("/me", { cookie: cookieOf(res) })).status).toBe(200);
+  });
+
   it("answers 401 for /me without a session", async () => {
     expect((await call("/me")).status).toBe(401);
   });
