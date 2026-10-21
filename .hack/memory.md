@@ -63,7 +63,11 @@ Fill liquidation flag       auto_close_type in ('liquidation','adl','bankrupt','
 Forward polling             /v2/history/fill?since_trade_id=  (ascending), limit max 1000
 Builder connect             needs a registered builder code (fake code -> 404 "builder code not found")
 strike-builder-reference    no license. Learn from it, do not copy it
-VPS                         shared with other apps; 33 GB free disk (78% used); sudo needs the user
+VPS                         shared with other apps; 31 GB free disk (79% used); sudo needs the user
+Docker on the VPS           docker.io 29 + system compose v1 only. We use Compose v5.6.0 installed per user in
+                            ~/.docker/cli-plugins (sha256 verified). Run docker via `sg docker -c` until re-login
+Production checkout         ~/deploy/draft-week (separate clone + .env). Compose project "draftweek", ports
+                            127.0.0.1:3940 (api) and 127.0.0.1:5440 (db)
 ```
 
 ## Known issues
