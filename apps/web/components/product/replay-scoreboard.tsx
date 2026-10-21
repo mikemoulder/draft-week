@@ -3,6 +3,7 @@
 // The signature (DESIGN.md §2): one matchup replayed day by day. At rest it shows the final state,
 // so it is complete without JavaScript and for reduced motion. In view, it plays the week once.
 import { useEffect, useRef, useState } from "react";
+import { ArrowsDownUp, ArrowsLeftRight, ArrowCounterClockwise, Crown, Robot, Skull, UserCircle } from "@phosphor-icons/react";
 import type { LeagueState } from "@draftweek/shared";
 import { useReducedMotion } from "@/components/motion";
 import { cx } from "@/components/primitives";
@@ -21,18 +22,18 @@ function ChipRow({ chip, animate, delay }: { chip: Chip; animate: boolean; delay
   return (
     <li
       className={cx(
-        "flex min-w-0 items-center gap-2 border border-line px-2 py-1.5 t-small",
-        chip.liquidated && "border-danger bg-danger-soft text-danger",
+        "flex min-w-0 items-center gap-2 rounded-[10px] bg-fill px-2.5 py-1.5 t-small",
+        chip.liquidated && "bg-danger-soft text-danger",
         chip.points === null && "text-fg-faint",
         animate && "chip-in",
         animate && chip.liquidated && "red-card-flash",
       )}
       style={animate ? { animationDelay: `${delay}ms` } : undefined}
     >
-      {chip.liquidated ? <span className="red-card" aria-label="Liquidated" /> : null}
+      {chip.liquidated ? <Skull size={14} weight="fill" aria-label="Liquidated" className="shrink-0" /> : null}
       <span className="min-w-0 flex-1 truncate">{chip.name}</span>
-      {chip.captain ? <span className="t-label text-fg-mute">C</span> : null}
-      {chip.sub ? <span className="t-label text-fg-mute">SUB</span> : null}
+      {chip.captain ? <Crown size={14} weight="fill" className="shrink-0 text-accent" aria-label="Captain" /> : null}
+      {chip.sub ? <ArrowsLeftRight size={14} weight="bold" className="shrink-0 text-fg-mute" aria-label="Came off the bench" /> : null}
       <span className="t-num shrink-0">{chip.points === null ? "DNP" : fmt(chip.points)}</span>
     </li>
   );
@@ -69,6 +70,14 @@ function LeadLine({ daily, shown, homeName, awayName }: { daily: [number, number
         />
       ) : null}
     </div>
+  );
+}
+
+function ManagerIcon({ bot }: { bot: boolean }) {
+  return bot ? (
+    <Robot size={20} weight="duotone" className="shrink-0 text-fg-mute" aria-label="Bot manager" />
+  ) : (
+    <UserCircle size={20} weight="duotone" className="shrink-0 text-fg-mute" aria-label="Manager" />
   );
 }
 
@@ -132,18 +141,26 @@ export function ReplayScoreboard({
   const state = shown >= 7 ? "Final" : shown === 0 ? "Kickoff" : `After ${DAYS[shown - 1]?.toLowerCase()}`;
   const aName = memberName(league, matchup.a);
   const bName = memberName(league, matchup.b);
+  const aBot = league.members.find((m) => m.id === matchup.a)?.isBot ?? false;
+  const bBot = league.members.find((m) => m.id === matchup.b)?.isBot ?? false;
 
   return (
-    <div ref={rootRef} className="border border-line-strong bg-panel">
+    <div ref={rootRef} className="overflow-hidden rounded-panel border border-line bg-panel shadow-[var(--elev-pop)]">
       {/* Scoreline */}
       <div className="grid grid-cols-2 items-end gap-x-4 gap-y-3 border-b border-line px-4 py-5 md:grid-cols-[1fr_auto_auto_auto_1fr] md:px-8 md:py-7">
         <div className="min-w-0 md:order-1">
           <p className="t-label">Home</p>
-          <p className="t-title mt-1 truncate">{aName}</p>
+          <p className="t-title mt-1 flex items-center gap-2 truncate">
+            <ManagerIcon bot={aBot} />
+            {aName}
+          </p>
         </div>
         <div className="min-w-0 text-right md:order-5">
           <p className="t-label">Away</p>
-          <p className="t-title mt-1 truncate">{bName}</p>
+          <p className="t-title mt-1 flex items-center justify-end gap-2 truncate">
+            {bName}
+            <ManagerIcon bot={bBot} />
+          </p>
         </div>
         <p className={cx("t-display-l t-num md:order-2", leader === "a" ? "text-accent" : "text-fg")} aria-label={`${aName} ${fmt(ta)}`}>
           {fmt(ta)}
@@ -169,7 +186,7 @@ export function ReplayScoreboard({
             <li
               key={d}
               className={cx(
-                "flex min-w-[78%] snap-start flex-col gap-3 border-line p-3 sm:min-w-[44%] md:min-w-0 md:p-4",
+                "flex min-w-[78%] snap-start flex-col gap-3 border-line p-3 transition-opacity duration-300 sm:min-w-[44%] md:min-w-0 md:p-4",
                 day > 0 && "border-l",
                 !revealed && "opacity-30",
               )}
@@ -178,7 +195,12 @@ export function ReplayScoreboard({
                 <span>
                   {d} {dates[day]}
                 </span>
-                {revealed && leadDays.has(day) ? <span className="text-accent">Lead change</span> : null}
+                {revealed && leadDays.has(day) ? (
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-chip bg-accent-soft px-2 py-0.5 text-accent" title="Lead change">
+                    <ArrowsDownUp size={12} weight="bold" aria-hidden />
+                    Lead
+                  </span>
+                ) : null}
               </p>
               {[
                 { pts: dayA, chips: daysA[day] ?? [] },
@@ -208,6 +230,7 @@ export function ReplayScoreboard({
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-4 md:px-8">
         <p className="t-small text-fg-mute">{caption ?? "Every point is a real trade on Strike."}</p>
         <button type="button" className="btn btn-ghost btn-sm" onClick={replay} disabled={active}>
+          <ArrowCounterClockwise size={15} weight="bold" aria-hidden />
           {active ? "Playing…" : "Replay the week"}
         </button>
       </div>

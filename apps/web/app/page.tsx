@@ -14,7 +14,7 @@ export default async function Home() {
     <>
       <Nav />
       <main>
-        <Hero />
+        <Hero stars={data.stars} />
         <Facts stats={data.stats} live={live} />
         <Game showcase={data} />
         <Scoring />

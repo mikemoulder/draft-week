@@ -1,21 +1,21 @@
 /*
-THESIS      A stadium scoreboard for Strike traders: the page is a game being played, not a product being sold. It refuses to look like an exchange.
-WORLD       Near-black ground, Archivo 800 expanded display set like a jersey, mono for every number's label, hard 1px lines, zero radius. One accent, scoreboard yellow, means "the lead"; liquidation is the red card.
-STORY       Hook (five traders, seven days) -> live facts band -> last week's game of the week, replayed -> how a trade becomes a point -> nothing is simulated -> play.
-FIRST VIEW  1440: giant two-line headline left, lead + two actions, the facts marquee at the fold, the scoreboard's top edge visible. 375: the headline at 15vw, one action, marquee, scoreboard header.
-SIGNATURE   The replay scoreboard: two managers' totals in huge numerals, a 7-day lead line drawing day by day, trader chips lighting with points, a red card flashing on a liquidation.
-REFUSES     Candlestick charts and trading-terminal chrome; casino gold, coins and confetti; gradient blobs, glass cards and floating 3D.
+THESIS      A trading-card club under floodlights: every Strike trader is a collectible card you draft into a five-card hand, and the week is a match you watch. It refuses to look like an exchange.
+WORLD       Warm night ground lit by sunset floodlight glows; Bricolage Grotesque display, Figtree text; rounded cards with tier frames; Phosphor duotone icons; orange is the action, gold the lead, red the red card.
+STORY       Hook with a fanned hand of this week's top real cards -> live facts -> last week's game of the week, replayed -> how a trade becomes a point -> nothing is simulated -> play.
+FIRST VIEW  Headline left, lead + orange action, a fanned hand of five real trader cards right, glowing; facts strip at the fold.
+SIGNATURE   The trader card: crest generated from the account, an overall rating from last week, a tier frame, a style badge.
+REFUSES     Candlestick charts and terminal chrome; stock photos, AI art and fake player faces; flat grey dashboards.
 */
 import type { Metadata, Viewport } from "next";
-import { Archivo, JetBrains_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Figtree } from "next/font/google";
 import { MOTION_BOOT, MotionRoot } from "@/components/motion";
 import { Toaster } from "@/components/states";
 import "./globals.css";
 
-// Archivo carries both voices: 400/700 at normal width for text, 800 at 125% width for display
-// and every score. Self-hosted by next/font, so nothing loads from a font CDN at runtime.
-const sans = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-brand-sans", display: "swap" });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-brand-mono", display: "swap" });
+// Bricolage Grotesque for display and every number (optical size follows the font size), Figtree for
+// text and labels. Self-hosted by next/font, so nothing loads from a font CDN at runtime.
+const display = Bricolage_Grotesque({ subsets: ["latin"], axes: ["opsz"], variable: "--font-brand-display", display: "swap" });
+const sans = Figtree({ subsets: ["latin"], variable: "--font-brand-sans", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://draft-week.vercel.app"),
@@ -26,11 +26,11 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
-export const viewport: Viewport = { themeColor: "#0B0B0B" };
+export const viewport: Viewport = { themeColor: "#15112A" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" data-theme="dark" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+    <html lang="en" data-theme="dark" className={`${display.variable} ${sans.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: MOTION_BOOT }} />
       </head>

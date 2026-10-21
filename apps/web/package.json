@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@draftweek/shared": "*",
+    "@phosphor-icons/react": "2.1.10",
     "@scure/base": "2.4.0",
     "next": "16.4.2",
     "react": "19.3.0",
