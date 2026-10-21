@@ -2,7 +2,7 @@
 // scored on that week's real trades, and the most dramatic matchup is featured on the landing page.
 // Nothing is stored; finished weeks never change, so the result is cached per week.
 import { and, eq, gte, inArray, lt, sql } from "drizzle-orm";
-import type { DayPoints, LeagueState, Showcase, ShowcaseStats } from "@draftweek/shared";
+import type { DayPoints, LeagueState, PoolTrader, Showcase, ShowcaseStats } from "@draftweek/shared";
 import type { Db } from "../../db/client.js";
 import { fills, traderDays, traders } from "../../db/schema.js";
 import { lastSuccessfulIngest } from "../ingest/run.js";
@@ -11,6 +11,25 @@ import { draftPool } from "../traders/pool.js";
 import { BOT_NAMES, LEAGUE_SIZE, botChoice, defaultLineup, scoreLeague, seatForPick, totalPicks, type PointsBook } from "./rules.js";
 
 const STATS_TTL_MS = 60_000;
+
+/**
+ * The landing page's hand: varied on purpose, so it shows what cards can be. The best card overall
+ * in the middle, the best of each other style around it, then the strongest cards left. Up to 12.
+ */
+export function dealHand(pool: PoolTrader[]): PoolTrader[] {
+  const ranked = [...pool].sort((a, b) => b.rating - a.rating || b.prevWeek.points - a.prevWeek.points);
+  const hand: PoolTrader[] = [];
+  const take = (t: PoolTrader | undefined) => t && !hand.includes(t) && hand.push(t);
+  take(ranked[0]);
+  for (const style of ["degen", "scalper", "swing", "steady"] as const) take(ranked.find((t) => t.style === style && !hand.includes(t)));
+  take(ranked.find((t) => t.tier === "gold" && !hand.includes(t)));
+  for (const t of ranked) if (hand.length < 12) take(t);
+  // fan order: the best card in the centre of the first five
+  const first = hand.slice(0, 5);
+  const centre = first.shift();
+  if (centre) first.splice(Math.floor(first.length / 2), 0, centre);
+  return [...first, ...hand.slice(5)];
+}
 
 export function createShowcase(db: Db, opts: { now?: () => Date } = {}) {
   const now = opts.now ?? (() => new Date());
@@ -135,7 +154,7 @@ export function createShowcase(db: Db, opts: { now?: () => Date } = {}) {
         const ingested = await lastSuccessfulIngest(db);
         if (ingested !== null && ingested > weekBounds(lastWeek).end.getTime() + 10 * 60_000) games.set(lastWeek, game);
       }
-      const stars = (await draftPool(db, weekIdOf(now()))).slice(0, 12);
+      const stars = dealHand(await draftPool(db, weekIdOf(now())));
       return { ...game, stats: await currentStats(lastWeek), stars };
     },
   };

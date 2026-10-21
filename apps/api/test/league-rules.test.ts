@@ -14,6 +14,7 @@ import {
   type PointsBook,
   type TraderDay,
 } from "../src/domain/leagues/rules.js";
+import { dealHand } from "../src/domain/leagues/showcase.js";
 
 const trader = (accountId: string, points: number, activeDays = 5): PoolTrader => ({
   accountId,
@@ -127,3 +128,19 @@ describe("scoring a lineup", () => {
     expect(standings.map((s) => s.memberId)).toEqual(["my", "mx"]);
   });
 });
+
+describe("dealHand", () => {
+  it("puts the best card in the middle and shows every style it can", () => {
+    const pool = [
+      { ...trader("s1", 60), style: "steady" as const, rating: 99, tier: "legend" as const },
+      { ...trader("s2", 58), style: "steady" as const, rating: 98, tier: "legend" as const },
+      { ...trader("d1", 40), style: "degen" as const, rating: 90, tier: "gold" as const },
+      { ...trader("c1", 30), style: "scalper" as const, rating: 80, tier: "silver" as const },
+      { ...trader("w1", 20), style: "swing" as const, rating: 70, tier: "silver" as const },
+    ];
+    const hand = dealHand(pool);
+    expect(hand[2]?.accountId).toBe("s1");
+    expect(new Set(hand.slice(0, 5).map((t) => t.style))).toEqual(new Set(["steady", "degen", "scalper", "swing"]));
+  });
+});
+
