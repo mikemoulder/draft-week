@@ -1,0 +1,101 @@
+# Per-event config for the skillz workflow. Filled by /skillz:recon on 2026-10-21.
+# Source of truth for facts: .hack/recon/brief.md
+
+hackathon:
+  name:            Strike Hackathon (Strike Finance)
+  theme:           "build something that integrates with, extends, or enhances the Strike ecosystem"
+  url:             https://medium.com/@strikecardano/strike-hackathon-starts-this-wednesday-3-000-in-prizes-158a029d655e
+  tracks:          []          # none. single pool, top 3 win
+  format:          online      # INFERRED: open competition, Discord-coordinated
+  size:            unknown     # first edition. Strike has ~6k users; a small field is likely (INFERRED)
+  deadline:        2026-10-23T10:00-04:00   # "10:00 EST". EDT vs EST is unconfirmed, ASK
+  submission:      unknown     # form "coming soon"
+
+sponsors:
+  - name:          Strike Finance
+    tech:          Strike API v2 (public REST /price /stat, WS /ws/price, L3 /ws/l3; signed trading; Builder Codes)
+    prize:         "6,000 STRIKE: 3,000 / 2,000 / 1,000 (title says ~$3,000)"
+    must_use:      true
+target_tracks:     1
+
+team:
+  size:            1           # ASSUMED: solo builder + Claude. correct me
+  strengths:       auto
+  known_stack:     auto
+  new_tech_ok:     true        # spike: public data 1.5x; signed trading 2x and key not yet obtained
+
+time:
+  total_hours:     47          # from 15:00 UTC Wed Oct 21
+  build_hours:     auto
+  ideation_cap_min: 60
+
+requires:
+  deployed_url:    false       # "video, live demo, or other materials"
+  video:           true        # one of video / live demo is required; video is the safe choice
+  open_source:     true        # GitHub repo required
+  hardware:        none
+
+strategy:
+  risk:            balanced
+  domain:          web3
+  avoid:
+    - perps dashboard / activity tracker (Hizz)
+    - copy-trading assistant or trader finder (Strike Copilot, Bolt, Hermes skill, native discover)
+    - grid / TWAP / trailing-stop bot (native in Strike)
+    - generic market-making bot (Hummingbot strike_perpetual connector exists)
+    - generic "AI agent trades on Strike" (official agent skills exist)
+    - trading terminal clone (strike-builder-reference is one)
+    - leaderboard or liquidation heatmap (served by /stat already)
+  novelty_floor:   6
+
+opportunities:     # capabilities, not projects. see .hack/recon/brief.md "Where the openings are"
+  - every account's balance, positions and fills are public by wallet address; all open positions are listed
+  - L3 order-by-order book stream (new, ~460 msg/s), queue position observable
+  - native cross-venue funding comparison (Binance, Bybit, OKX, Hyperliquid, Lighter...)
+  - builder codes: one-signature onboarding on ETH/SOL/ADA + up to 100 bps per fill
+  - vault_id on every trading endpoint: a strategy can run pooled capital
+  - equities and commodities perps reachable from a Cardano wallet
+  - thin book; RFQ "Quoter" liquidity role
+
+rubric:            # official criteria, no weights published -> equal
+  innovation:      20
+  tech_integration: 20
+  impact:          20
+  technical:       20
+  future_potential: 20
+
+chosen_idea:       Draft Week, fantasy league of real Strike traders (.hack/plan/idea-brief.md)
+
+components:        # from /skillz:architecture (.hack/plan/architecture-brief.md)
+  frontend:        true
+  backend:         separate-service  # Hono API + ingest worker on the VPS
+  database:        postgres        # Postgres 16 in docker compose on the VPS
+  auth:            wallet          # sign in with Cardano / Solana / Ethereum wallet, server sessions
+  agent:           false
+  onchain:         false
+  realtime:        none
+stack:
+  framework:       next-app
+  package_manager: npm
+deploy:
+  host:            vercel+vps    # web on Vercel (rewrites /api/* to the VPS); api + db + ingest in docker compose on the VPS
+  network:         mainnet-read  # testnet has no activity; trading only behind a confirm sheet
+
+idea_parking:      # raw ideas from /skillz:ideation, 2026-10-21
+  - Draft Week: fantasy league, draft real Strike traders, score from their real fills (CHOSEN)
+  - Domino: whole-exchange liquidation cascade + SLP vault stress test (runner-up)
+  - L3 maker fingerprinting: who quotes Strike's book, order lifetimes, spoofing
+  - Fade-the-crowd agent: trades against crowded public positioning via builder code (needs funds + key)
+  - Live proof of reserves: Cardano/EVM/SOL locker balances vs sum of public account balances (locker addresses unverified)
+  - One-signature stock perps from a Cardano wallet (builder-code consumer app; below novelty floor)
+  - Funding-divergence carry bot Strike vs Hyperliquid (common; needs capital on two venues)
+  - Verified PnL card for any address (too small)
+  - L3 queue-position tracker for makers (niche)
+  - RFQ Quoter that sources Hyperliquid/Binance depth just in time (no quoter API documented)
+  - Funding-carry vault using vault_id (needs a vault + capital)
+  - Cross-margin stress test for one wallet (folded into Domino)
+  - Book-vs-Binance slippage router (aggregator shape)
+
+continuity:        # .hack/ layout (lock-and-load, 2026-10-21)
+  memory:          .hack/memory.md
+  handoff:         .hack/handoff.md
