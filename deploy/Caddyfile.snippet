@@ -1,0 +1,5 @@
+# Added to /etc/caddy/Caddyfile on the VPS (2026-10-21). Back up, validate, then reload.
+draftweek-api.duckdns.org {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3940
+}

@@ -1,0 +1,8 @@
+**/node_modules
+**/.next
+**/dist
+.git
+.hack
+.env
+**/.env*
+!.env.example
