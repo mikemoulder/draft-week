@@ -113,7 +113,9 @@ describe.skipIf(!url)("sign-in flow", () => {
     const { res } = await signInCardano();
     const cookie = cookieOf(res);
     expect((await call("/auth/logout", { method: "POST", cookie })).status).toBe(204);
-    expect((await call("/me", { cookie })).status).toBe(401);
+    const after = await call("/me", { cookie });
+    expect(after.status).toBe(200);
+    expect(await after.json()).toBeNull();
   });
 
   it("signs in with a Solana wallet", async () => {
@@ -143,7 +145,9 @@ describe.skipIf(!url)("sign-in flow", () => {
     expect((await call("/me", { cookie: cookieOf(res) })).status).toBe(200);
   });
 
-  it("answers 401 for /me without a session", async () => {
-    expect((await call("/me")).status).toBe(401);
+  it("answers null for /me without a session", async () => {
+    const res = await call("/me");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toBeNull();
   });
 });

@@ -3,13 +3,12 @@ THESIS      A stadium scoreboard for Strike traders: the page is a game being pl
 WORLD       Near-black ground, Archivo 800 expanded display set like a jersey, mono for every number's label, hard 1px lines, zero radius. One accent, scoreboard yellow, means "the lead"; liquidation is the red card.
 STORY       Hook (five traders, seven days) -> live facts band -> last week's game of the week, replayed -> how a trade becomes a point -> nothing is simulated -> play.
 FIRST VIEW  1440: giant two-line headline left, lead + two actions, the facts marquee at the fold, the scoreboard's top edge visible. 375: the headline at 15vw, one action, marquee, scoreboard header.
-SIGNATURE   The replay scoreboard: two managers' totals in huge numerals, a 7-day worm race drawing day by day, trader chips lighting with points, a red card flashing on a liquidation.
+SIGNATURE   The replay scoreboard: two managers' totals in huge numerals, a 7-day lead line drawing day by day, trader chips lighting with points, a red card flashing on a liquidation.
 REFUSES     Candlestick charts and trading-terminal chrome; casino gold, coins and confetti; gradient blobs, glass cards and floating 3D.
 */
 import type { Metadata, Viewport } from "next";
 import { Archivo, JetBrains_Mono } from "next/font/google";
 import { MOTION_BOOT, MotionRoot } from "@/components/motion";
-import { SessionProvider } from "@/components/session";
 import { Toaster } from "@/components/states";
 import "./globals.css";
 
@@ -20,10 +19,10 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-brand-mono",
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://draft-week.vercel.app"),
-  title: { default: "Draft Week: fantasy football for Strike traders", template: "%s | Draft Week" },
+  title: { default: "FTL: Fantasy Trading League for Strike", template: "%s | FTL" },
   description:
-    "Draft five real Strike Finance traders. Every trade they make this week scores for you. Free to play, scored from Strike's public trade data.",
-  openGraph: { type: "website", siteName: "Draft Week" },
+    "FTL, the Fantasy Trading League. Draft five real Strike Finance traders. Every trade they make this week scores for you. Free to play, scored from Strike's public trade data.",
+  openGraph: { type: "website", siteName: "FTL, Fantasy Trading League" },
   twitter: { card: "summary_large_image" },
 };
 
@@ -37,7 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body>
         <MotionRoot />
-        <SessionProvider>{children}</SessionProvider>
+        {children}
         <Toaster />
       </body>
     </html>

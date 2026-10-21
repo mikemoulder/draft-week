@@ -1,11 +1,11 @@
-# Idea brief: Draft Week
+# Idea brief: FTL (Fantasy Trading League)
 
 > Working name. Rename at most once, and not today.
 > Chosen 2026-10-21 over Domino (liquidation cascade simulator), which stays the runner-up.
 
 ## The sentence
 
-> We built **Draft Week** for **Strike traders and their friends**, letting them **draft real Strike
+> We built **FTL, the Fantasy Trading League,** for **Strike traders and their friends**, letting them **draft real Strike
 > traders into fantasy teams and score points from those traders' real trades**, using **Strike's public
 > per-account trade history** to make **fantasy sports for trading** possible.
 

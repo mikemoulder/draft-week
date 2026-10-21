@@ -1,4 +1,4 @@
-# Draft Week
+# FTL: Fantasy Trading League
 
 Fantasy football for trading: draft real Strike Finance traders, and their real trades on Strike score your points.
 

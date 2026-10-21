@@ -2,7 +2,7 @@
 
 ## What this is
 
-Draft Week is a fantasy league for Strike Finance, a perpetuals exchange on Cardano. Players sign in with
+FTL (Fantasy Trading League, working name until 2026-10-21 was Draft Week) is a fantasy league for Strike Finance, a perpetuals exchange on Cardano. Players sign in with
 their wallet, draft five real Strike traders, pick a captain, and score points every day from those
 traders' real trades on Strike. Built for the Strike Hackathon (Oct 21 to 23, 2026).
 
@@ -26,7 +26,7 @@ and recomputes per-day points. Full design: `.hack/plan/architecture-brief.md`.
 ## Decisions
 
 ```text
-Fantasy league (Draft Week) as the project
+Fantasy league (FTL, formerly Draft Week) as the project
   why:        user preference; "social trading" is a named area in the announcement; validated on real data
   instead of: Domino (liquidation cascade + SLP vault stress test). Deeper integration, less fun. Runner-up
 

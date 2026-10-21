@@ -1,4 +1,4 @@
-# Draft Week backend on the VPS: Postgres, the API, and the Strike ingest worker.
+# FTL backend on the VPS: Postgres, the API, and the Strike ingest worker.
 # Secrets come from ./.env (gitignored, chmod 600). See .env.example.
 name: draftweek
 

@@ -18,9 +18,9 @@ export function Footer() {
       </Container>
       <p
         aria-hidden
-        className="t-num -mb-[0.22em] select-none whitespace-nowrap text-center text-[12.2vw] leading-[0.8] tracking-[-0.06em] text-surface-2"
+        className="t-num -mb-[0.3em] select-none whitespace-nowrap text-center text-[36vw] leading-[0.78] tracking-[-0.06em] text-surface-2"
       >
-        DRAFT WEEK
+        FTL
       </p>
     </footer>
   );

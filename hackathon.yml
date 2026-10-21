@@ -64,7 +64,7 @@ rubric:            # official criteria, no weights published -> equal
   technical:       20
   future_potential: 20
 
-chosen_idea:       Draft Week, fantasy league of real Strike traders (.hack/plan/idea-brief.md)
+chosen_idea:       FTL (Fantasy Trading League, formerly Draft Week), fantasy league of real Strike traders (.hack/plan/idea-brief.md)
 
 components:        # from /skillz:architecture (.hack/plan/architecture-brief.md)
   frontend:        true
@@ -82,7 +82,7 @@ deploy:
   network:         mainnet-read  # testnet has no activity; trading only behind a confirm sheet
 
 idea_parking:      # raw ideas from /skillz:ideation, 2026-10-21
-  - Draft Week: fantasy league, draft real Strike traders, score from their real fills (CHOSEN)
+  - FTL / Draft Week: fantasy league, draft real Strike traders, score from their real fills (CHOSEN)
   - Domino: whole-exchange liquidation cascade + SLP vault stress test (runner-up)
   - L3 maker fingerprinting: who quotes Strike's book, order lifetimes, spoofing
   - Fade-the-crowd agent: trades against crowded public positioning via builder code (needs funds + key)

@@ -44,10 +44,8 @@ export function authRoutes(auth: AuthService, opts: { secureCookie: boolean }) {
     return c.body(null, 204);
   });
 
-  r.get("/me", (c) => {
-    const me = c.get("me");
-    return me ? c.json(me) : c.json({ error: "not signed in" }, 401);
-  });
+  // "Who am I": null when signed out. Not an error, so signed-out pages keep a clean console.
+  r.get("/me", (c) => c.json(c.get("me")));
 
   return r;
 }

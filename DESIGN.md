@@ -1,6 +1,6 @@
 # DESIGN.md
 
-The design of Draft Week, decided once, before the build. Every component answers to this file.
+The design of FTL (Fantasy Trading League), decided once, before the build. Every component answers to this file.
 When the design changes, change this file first, then the code.
 
 ---
@@ -12,7 +12,7 @@ THESIS      A stadium scoreboard for Strike traders: the page is a game being pl
 WORLD       Near-black ground, Archivo 800 expanded display set like a jersey, mono for every number's label, hard 1px lines, zero radius. One accent, scoreboard yellow, means "the lead"; liquidation is the red card.
 STORY       Hook (five traders, seven days) -> live facts band -> last week's game of the week, replayed -> how a trade becomes a point -> nothing is simulated -> play.
 FIRST VIEW  1440: giant two-line headline left, lead + two actions, the facts marquee at the fold, the scoreboard's top edge visible. 375: the headline at 15vw, one action, marquee, scoreboard header.
-SIGNATURE   The replay scoreboard: two managers' totals in huge numerals, a 7-day worm race drawing day by day, trader chips lighting with points, a red card flashing on a liquidation.
+SIGNATURE   The replay scoreboard: two managers' totals in huge numerals, a 7-day lead line drawing day by day, trader chips lighting with points, a red card flashing on a liquidation.
 REFUSES     Candlestick charts and trading-terminal chrome; casino gold, coins and confetti; gradient blobs, glass cards and floating 3D.
 ```
 
@@ -47,7 +47,7 @@ REFUSES     Candlestick charts and trading-terminal chrome; casino gold, coins a
 
 | | |
 |---|---|
-| The element | `ReplayScoreboard`: header with the two managers and totals in display numerals; below, a 7-column day strip (MON to SUN) where each day reveals both lineups' trader chips with their points; a worm chart of both cumulative totals drawn across the days |
+| The element | `ReplayScoreboard`: header with the two managers and totals in display numerals; below, a 7-column day strip (MON to SUN) where each day reveals both lineups' trader chips with their points; a lead line (home's margin over away around a zero baseline) drawn across the days |
 | Where it lives | Landing beat 4 (game of the week, real data, no sign-in) and the league screen in live/final (the user's own matchup). Same component |
 | Still frame (what a screenshot shows) | Day 5 of 7: totals 92 to 92, the worms crossing, a red card on one chip, the leader's total in yellow |
 | Motion (what changes, how long, how it loops or ends) | Press Play: each day takes 900ms; chips light left to right (60ms stagger), totals count up, the worm extends one segment; a liquidation flashes red once and holds; the leader's total turns yellow on a lead change. Ends on Sunday with the winner marked. Replay button restarts |
@@ -100,14 +100,14 @@ REFUSES     Candlestick charts and trading-terminal chrome; casino gold, coins a
 
 | # | Beat | Job (one line) | Pattern | Tone | Align | Content (real copy, drafted now) |
 |---|---|---|---|---|---|---|
-| 1 | Nav | find the game, play it | full-width bar, 1px bottom line | quiet | edge | DRAFT WEEK · links: SCORING, LAST WEEK, GITHUB · [Play now] |
+| 1 | Nav | find the game, play it | full-width bar, 1px bottom line | quiet | edge | FTL + "Fantasy Trading League" label · links: SCORING, LAST WEEK, GITHUB · [Play now] |
 | 2 | Hook | what, why, what next | editorial statement | loud, airy | left | H1 "Five traders. / Seven days." Lead: "Fantasy football for Strike Finance. Draft five real traders, and every trade they make this week scores for you. Free to play." [Start a league] · Watch last week's game ↓ |
 | 3 | Facts | prove it is live | marquee band | dense | full | 540 TRADERS FOLLOWED · 43,368 TRADES LAST WEEK · 95 LIQUIDATIONS · DATA UPDATED 3 MIN AGO · FREE TO PLAY · (numbers from /api/showcase) |
 | 4 | Signature | show the game being played | live stage panel | contained | left header | Label "LAST WEEK · OCT 12 TO 18 · GAME OF THE WEEK". H2 "A real week, replayed." Lead: "Two lineups of real Strike traders. Every point below is a trade that happened." The ReplayScoreboard, [Play the week] |
 | 5 | Mechanism | how a trade becomes a point | ruled columns, giant numerals | dense | left | H2 "How a trade becomes a point." Columns: "1 to 10 / Ranked daily. Every trader who traded that day is ranked by return against every other trader. Top tenth scores 10." · "-5 / Red card. A liquidation costs five points, on top of the day." · "x1.5 / Captain. Your captain counts one and a half. A starter who sits out is replaced by your first bench trader who traded." |
 | 6 | Trust | nothing is simulated | inverted statement band (bone) | calm | left | H2 "Nothing here is simulated." Rows: "Every fill comes from Strike's public API." / "Refreshed every five minutes. Last update 3 min ago." / "Cards show last week, so nobody drafts with hindsight." |
 | 7 | Close | one action | closing statement | loud, airy | center | H2 "Draft night is tonight." [Start a league] · "Sign in with your Strike wallet, or play as a guest." |
-| 8 | Footer | identity, links | big wordmark footer | quiet | edge | DRAFT WEEK set at viewport width, cropped. Row: GitHub · Strike Finance · "Data from Strike Finance's public API. Not affiliated." · Built for the Strike Hackathon 2026 |
+| 8 | Footer | identity, links | big wordmark footer | quiet | edge | FTL set at viewport width, cropped. Row: GitHub · Strike Finance · "Data from Strike Finance's public API. Not affiliated." · Built for the Strike Hackathon 2026 |
 
 Rhythm check:
 
@@ -141,7 +141,7 @@ Four routes. The trader detail is a sheet inside the draft room, not a route.
 
 ```text
 +--------------------------------------------------------------------------------------------------+
-| DRAFT WEEK              SCORING   LAST WEEK   GITHUB                              [ PLAY NOW ]  |  64h bar, 1px line-strong bottom
+| FTL  FANTASY TRADING LEAGUE   SCORING   LAST WEEK   GITHUB                              [ PLAY NOW ]  |  64h bar, 1px line-strong bottom
 +--------------------------------------------------------------------------------------------------+
 |                                                                                                  |
 |  FANTASY FOOTBALL FOR STRIKE FINANCE                                                             |  label, mono, fg-mute
@@ -163,7 +163,7 @@ Four routes. The trader detail is a sheet inside the draft room, not a route.
 
 ```text
 +-----------------------------------+
-| DRAFT WEEK           [ PLAY NOW ] |  links collapse
+| FTL                  [ PLAY NOW ] |  links collapse
 |                                   |
 | FANTASY FOOTBALL FOR STRIKE       |
 | FIVE                              |  display-xl at 15vw (56px), 2 words per line
@@ -314,6 +314,13 @@ Ratio check: hero 152 / body 16 = 9.5 at 1440 (bold-signal intends type as image
 One site.
 
 ---
+
+## 7b. Changes during the build
+
+- 2026-10-21: the worm (two cumulative lines) became a lead line. In close games the two cumulative lines overlap
+  all week, which hides exactly the drama the signature exists to show; a margin line crosses zero at every lead change.
+- 2026-10-21: the product is named FTL, Fantasy Trading League (was the working name Draft Week). Wordmark: FTL in
+  the display face, with "Fantasy Trading League" as a mono label beside it in the nav.
 
 ## 8. Critique log
 

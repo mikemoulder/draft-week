@@ -19,7 +19,7 @@ export function buildMessage(f: MessageFields): string {
     `${url.host} wants you to sign in with your ${CHAIN_NAME[f.chain]} account:`,
     f.address,
     "",
-    "Sign in to Draft Week. This does not cost anything or move any funds.",
+    "Sign in to FTL, the Fantasy Trading League. This does not cost anything or move any funds.",
     "",
     `URI: ${url.origin}`,
     `Nonce: ${f.nonce}`,

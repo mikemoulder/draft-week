@@ -9,6 +9,7 @@ type Session = {
   me: Me | null;
   loading: boolean;
   signIn(option: WalletOption): Promise<Me>;
+  playAsGuest(): Promise<Me>;
   signOut(): Promise<void>;
 };
 
@@ -30,7 +31,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     api
-      .get<Me>("/me")
+      .get<Me | null>("/me")
       .then(setMe)
       .catch(() => setMe(null))
       .finally(() => setLoading(false));
@@ -49,12 +50,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const playAsGuest = useCallback(async () => {
+    const user = await api.post<Me>("/auth/guest");
+    setMe(user);
+    return user;
+  }, []);
+
   const signOut = useCallback(async () => {
     await api.post("/auth/logout");
     setMe(null);
   }, []);
 
-  return <SessionContext.Provider value={{ me, loading, signIn, signOut }}>{children}</SessionContext.Provider>;
+  return <SessionContext.Provider value={{ me, loading, signIn, playAsGuest, signOut }}>{children}</SessionContext.Provider>;
 }
 
 export function useSession(): Session {

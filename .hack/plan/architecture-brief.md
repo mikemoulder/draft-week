@@ -1,4 +1,4 @@
-# Architecture brief: Draft Week (v3)
+# Architecture brief: FTL, Fantasy Trading League (v3)
 
 > v3, 2026-10-21 18:40 UTC. Frontend on Vercel, backend (API, database, ingest) on the user's VPS.
 > Supersedes v1 (static app) and v2 (all on one host).

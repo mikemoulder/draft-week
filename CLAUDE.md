@@ -1,4 +1,4 @@
-# Draft Week
+# FTL: Fantasy Trading League
 
 Fantasy league for Strike Finance: players draft real Strike traders, and those traders' real trades score the points.
 
