@@ -8,13 +8,6 @@ import { body, type AppEnv } from "../http.js";
 export function authRoutes(auth: AuthService, opts: { secureCookie: boolean }) {
   const r = new Hono<AppEnv>();
 
-  // Resolve the session once per request; routes read c.var.me.
-  r.use("*", async (c, next) => {
-    const token = getCookie(c, SESSION_COOKIE);
-    c.set("me", token ? await auth.userForToken(token) : null);
-    await next();
-  });
-
   r.post("/auth/challenge", body(ChallengeRequest), async (c) => {
     const { chain, address } = c.req.valid("json");
     const result = await auth.challenge(chain, address);

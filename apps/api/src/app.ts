@@ -2,7 +2,9 @@ import { timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
 import type { Health } from "@draftweek/shared";
 import type { AuthService } from "./domain/auth/service.js";
-import type { AppEnv } from "./http.js";
+import { session, type AppEnv } from "./http.js";
+import type { LeagueService } from "./domain/leagues/service.js";
+import { leagueRoutes } from "./routes/leagues.js";
 import { authRoutes } from "./routes/auth.js";
 import { weekRoutes } from "./routes/weeks.js";
 import type { Db } from "./db/client.js";
@@ -14,6 +16,7 @@ export type AppDeps = {
   lastIngestAt: () => Promise<number | null>;
   auth?: AuthService;
   db?: Db;
+  leagues?: LeagueService;
   now?: () => Date;
   secureCookie?: boolean;
 };
@@ -49,8 +52,12 @@ export function createApp(deps: AppDeps) {
     return c.json(body, db ? 200 : 503);
   });
 
-  if (deps.auth) app.route("/", authRoutes(deps.auth, { secureCookie: deps.secureCookie ?? true }));
+  if (deps.auth) {
+    app.use("*", session(deps.auth));
+    app.route("/", authRoutes(deps.auth, { secureCookie: deps.secureCookie ?? true }));
+  }
   if (deps.db) app.route("/", weekRoutes(deps.db, deps.now));
+  if (deps.leagues) app.route("/", leagueRoutes(deps.leagues));
 
   app.notFound((c) => c.json({ error: "not found" }, 404));
   app.onError((err, c) => {
