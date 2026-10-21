@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { sql as raw } from "drizzle-orm";
 import { createApp } from "./app.js";
 import { createDb } from "./db/client.js";
+import { createAuthService } from "./domain/auth/service.js";
 import { loadEnv } from "./env.js";
 
 const env = loadEnv();
@@ -19,6 +20,8 @@ const app = createApp({
     }
   },
   lastIngestAt: async () => null,
+  auth: createAuthService(db, { origin: env.WEB_ORIGIN }),
+  secureCookie: env.WEB_ORIGIN.startsWith("https://"),
 });
 
 const server = serve({ fetch: app.fetch, port: env.PORT, hostname: "0.0.0.0" }, (info) => {

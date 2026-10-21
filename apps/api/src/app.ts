@@ -1,12 +1,17 @@
 import { timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
 import type { Health } from "@draftweek/shared";
+import type { AuthService } from "./domain/auth/service.js";
+import type { AppEnv } from "./http.js";
+import { authRoutes } from "./routes/auth.js";
 
 export type AppDeps = {
   proxySecret: string;
   version: string;
   pingDb: () => Promise<boolean>;
   lastIngestAt: () => Promise<number | null>;
+  auth?: AuthService;
+  secureCookie?: boolean;
 };
 
 function sameSecret(given: string | undefined, expected: string): boolean {
@@ -17,7 +22,7 @@ function sameSecret(given: string | undefined, expected: string): boolean {
 }
 
 export function createApp(deps: AppDeps) {
-  const app = new Hono();
+  const app = new Hono<AppEnv>();
 
   // Only the web app's proxy knows this secret, so the public API hostname cannot be
   // used to bypass the web origin. /health stays open for uptime checks.
@@ -39,6 +44,8 @@ export function createApp(deps: AppDeps) {
     };
     return c.json(body, db ? 200 : 503);
   });
+
+  if (deps.auth) app.route("/", authRoutes(deps.auth, { secureCookie: deps.secureCookie ?? true }));
 
   app.notFound((c) => c.json({ error: "not found" }, 404));
   app.onError((err, c) => {
