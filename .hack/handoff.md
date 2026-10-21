@@ -1,35 +1,32 @@
 # Handoff
 
-**As of:** `79e37fd` · Wed 2026-10-21 ~19:00 UTC · foundation session
+**As of:** `310cc09` · Wed 2026-10-21 ~21:15 UTC · auth session
 
 ## Next step
 
-Vercel: user imports `MikeMoulder/draft-week` with root directory `apps/web` and env vars `API_ORIGIN`
-(https://draftweek-api.duckdns.org) and `PROXY_SECRET` (from `~/deploy/draft-week/.env`). Then open the
-Vercel URL and confirm the status line reads "Backend online". If the Vercel URL is not
-draft-week.vercel.app, update `WEB_ORIGIN` in `~/deploy/draft-week/.env` and redeploy the API.
+Data phase. In `apps/api/src/db/schema.ts` add traders, fills, ingest_state, weeks, trader_days; generate
+migration `data`. Then `apps/api/src/strike.ts` (the only Strike caller: UA header, base paths, retries) and
+`src/domain/ingest/` (leaderboard -> traders, fills with since_trade_id, trader_days recompute) with tests
+against the throwaway db, then `src/worker.ts` + an `ingest` service in docker-compose.yml.
 
-In parallel: start the Auth phase. `apps/api/src/db/schema.ts` (users, wallets, auth_challenges, sessions),
-first migration, then `POST /auth/challenge` + `POST /auth/verify` for Cardano using
-`@cardano-foundation/cardano-verify-datasignature` (spike: `.hack/recon/spike/cardano_signin_spike.cjs`).
+Waiting on the user: a real-wallet sign-in on https://draft-week.vercel.app/signin (Lace/Eternl or Phantom).
 
 ## Current status
 
-**Working:** API + Postgres live on the VPS; `/health` public; every other route requires the proxy secret.
-Web app proxies `/api/*` to the API (verified locally against production).
-**Deployed:** API https://draftweek-api.duckdns.org/health (build 69af63f). Web: not yet on Vercel.
-**Build:** green (typecheck all workspaces, api tests 5/5, web build, api bundle)
+**Working (production):** wallet sign-in end to end through Vercel -> VPS; server-side sessions; logout.
+**Deployed:** web https://draft-week.vercel.app (310cc09), API https://draftweek-api.duckdns.org/health (194a620).
+**Build:** green.
 
 ## Verified
 
 ```text
-Ran:     npm run typecheck (shared, api, web)         -> pass
-Ran:     npm test -w @draftweek/api                   -> 5 passed (proxy secret + health)
-Ran:     npm run build -w @draftweek/web              -> pass (/ static, /api/[...path] dynamic)
-Ran:     bash deploy/deploy-api.sh in ~/deploy/draft-week -> health {"ok":true,"db":true}
-Checked: curl https://draftweek-api.duckdns.org/health -> 200; /me without secret -> 403
-Checked: next dev against production API: /api/health 200 with no content-encoding; /api/me 404 (secret accepted)
-Not yet: Set-Cookie passthrough (no endpoint sets a cookie yet). Check when /auth/verify lands
+Ran:     TEST_DATABASE_URL=postgres://postgres:test@127.0.0.1:5441/postgres npx vitest run  (apps/api)
+Result:  24 passed: proxy secret + health (5), address/message/signature units (9), sign-in flow on Postgres (10)
+Ran:     production check through https://draft-week.vercel.app/api with a generated Cardano wallet
+Result:  challenge -> verify 200, Set-Cookie arrives via Vercel (HttpOnly; Secure; SameSite=Lax),
+         /me 200 with matching address, logout 204, /me after logout 401. Test user deleted afterwards
+Ran:     web eslint, typecheck, build -> clean
+Not yet: a real browser wallet extension (CIP-30 signData from Lace/Eternl, Phantom signMessage)
 ```
 
 ## Do not repeat
@@ -41,6 +38,7 @@ JSON.parse on a /ws/price frame            frames hold several newline-separated
 `docker compose` with the system install   not available (compose v1 only). Plugin is in ~/.docker/cli-plugins
 pkill -f "<pattern>" in a compound command  matches its own shell and kills it. Use pgrep, then kill <pid>
 tsc in apps/web without typegen            RouteContext / LayoutProps missing. Script runs `next typegen` first
+tsx on a .ts file outside the repo         treated as CJS, top-level await fails. Use .mts
 Static-only app with localStorage leagues  rejected by the user: needs accounts and cross-device state
 Entry-fee prize pools, referral funding    rejected: zero-sum / only pays on new users
 ```
@@ -48,8 +46,8 @@ Entry-fee prize pools, referral funding    rejected: zero-sum / only pays on new
 ## Remaining work (commit roadmap)
 
 ```text
-1. Foundation        DONE except Vercel import
-2. Auth              schema, challenge/verify (Cardano first), sessions, /me, sign-in page           (~8)
+1. Foundation        DONE
+2. Auth              DONE (Cardano + Solana). Ethereum deferred (6 of 260 traders). Real-wallet check pending
 3. Data              schema, ingest worker, trader_days, scoring + tests, backfill                    (~10)
 4. Leagues           create/join, draft turns + bots, lineup, league state + tests                    (~10)
 5. UI                dashboard, draft room, lineup, matchup replay (the aha), trader page             (~12)
