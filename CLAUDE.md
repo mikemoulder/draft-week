@@ -34,7 +34,7 @@ npm run db:migrate -w apps/api   # apply committed migrations
 ```
 
 Deploy:
-- Web: push to `main`, Vercel builds `apps/web`. URL: pending (draftweek.vercel.app planned).
+- Web: push to `main`, Vercel builds `apps/web`. URL: https://draft-week.vercel.app.
 - API: push to `main`, then on the VPS `cd ~/deploy/draft-week && bash deploy/deploy-api.sh` (pulls, rebuilds,
   waits for /health, prunes images). Production runs from that separate clone, never from the dev checkout.
   Secrets: `~/deploy/draft-week/.env` (chmod 600). URL: https://draftweek-api.duckdns.org/health

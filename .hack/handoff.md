@@ -7,7 +7,7 @@
 Vercel: user imports `MikeMoulder/draft-week` with root directory `apps/web` and env vars `API_ORIGIN`
 (https://draftweek-api.duckdns.org) and `PROXY_SECRET` (from `~/deploy/draft-week/.env`). Then open the
 Vercel URL and confirm the status line reads "Backend online". If the Vercel URL is not
-draftweek.vercel.app, update `WEB_ORIGIN` in `~/deploy/draft-week/.env` and redeploy the API.
+draft-week.vercel.app, update `WEB_ORIGIN` in `~/deploy/draft-week/.env` and redeploy the API.
 
 In parallel: start the Auth phase. `apps/api/src/db/schema.ts` (users, wallets, auth_challenges, sessions),
 first migration, then `POST /auth/challenge` + `POST /auth/verify` for Cardano using

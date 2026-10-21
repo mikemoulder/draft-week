@@ -6,11 +6,11 @@
 ## Summary
 
 ```text
-Frontend:   Next.js App Router on Vercel                      draftweek.vercel.app
+Frontend:   Next.js App Router on Vercel                      draft-week.vercel.app
 Backend:    Node API (Hono) + Postgres 16 + ingest worker      docker compose on the VPS, api.draftweek.duckdns.org
 Contract:   one shared package of zod schemas and types; the web app calls the API through a typed client
 Auth:       sign in with the wallet people already trade with (Cardano first, then Solana, Ethereum). Server sessions
-Same-origin: the browser only ever talks to draftweek.vercel.app. Vercel rewrites /api/* to the VPS, so the
+Same-origin: the browser only ever talks to draft-week.vercel.app. Vercel rewrites /api/* to the VPS, so the
             session cookie is first-party and nothing needs CORS
 Repo:       one GitHub repo, npm workspaces: apps/web, apps/api, packages/shared
 ```
@@ -50,7 +50,7 @@ draft with friends (bots fill empty seats) -> set captain and bench -> follow li
 
 ```text
             Browser (any device)
-                  │  https://draftweek.vercel.app   (pages + /api/*, one origin, session cookie)
+                  │  https://draft-week.vercel.app   (pages + /api/*, one origin, session cookie)
                   ▼
    [Web]  apps/web on Vercel ── rewrite /api/* ──►  [Caddy]  api.draftweek.duckdns.org (TLS, on the VPS)
                                                         │
@@ -188,7 +188,7 @@ Touches    only this compose project and one new Caddy block (backed up, validat
 Sign-in:      challenge with domain, nonce, issued-at, expiry; single use. Verified on the API per chain:
               Cardano CIP-30 signData (COSE_Sign1, key hash must match the address), Solana ed25519,
               Ethereum EIP-191 personal_sign
-Sessions:     random id in an httpOnly, Secure, SameSite=Lax, host-only cookie on draftweek.vercel.app,
+Sessions:     random id in an httpOnly, Secure, SameSite=Lax, host-only cookie on draft-week.vercel.app,
               stored server-side, revocable, 30 days
 Proxy trust:  the API only accepts requests carrying X-Proxy-Secret (added by the Vercel rewrite via an env var),
               so the duckdns hostname cannot be used to bypass the web origin. /health is exempt
