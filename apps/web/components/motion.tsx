@@ -23,6 +23,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type CSSProperties,
   type HTMLAttributes,
   type ReactNode,
@@ -40,16 +41,21 @@ export function MotionRoot() {
   return null;
 }
 
+const REDUCED_QUERY = "(prefers-reduced-motion: reduce)";
+
+function subscribeReduced(onChange: () => void) {
+  const mq = window.matchMedia(REDUCED_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+/** The OS reduced-motion setting, live. False on the server, so SSR renders the full layout. */
 export function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const on = () => setReduced(mq.matches);
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, []);
-  return reduced;
+  return useSyncExternalStore(
+    subscribeReduced,
+    () => window.matchMedia(REDUCED_QUERY).matches,
+    () => false,
+  );
 }
 
 /** True once the element has been seen. With `once: false` it tracks visibility. */
@@ -63,8 +69,8 @@ export function useInView<T extends Element>(
     const el = ref.current;
     if (!el) return;
     if (!("IntersectionObserver" in window)) {
-      setInView(true);
-      return;
+      const t = setTimeout(() => setInView(true), 0);
+      return () => clearTimeout(t);
     }
     const io = new IntersectionObserver(
       ([entry]) => {
@@ -214,14 +220,8 @@ export function CountUp({
 }) {
   const [ref, inView] = useInView<HTMLSpanElement>({ threshold: 0.6 });
   const reduced = useReducedMotion();
+  // Shows the real value until first seen (never a flash of zero), then counts up once.
   const [shown, setShown] = useState<number | null>(null);
-  // Below the fold, reset to zero before it is seen. Above the fold it would
-  // flash, so keep CountUp for numbers the visitor scrolls to.
-  useEffect(() => {
-    if (reduced) setShown(null);
-    else if (!inView) setShown(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reduced]);
   useEffect(() => {
     if (!inView || reduced) return;
     let raf = 0;

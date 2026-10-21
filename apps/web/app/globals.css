@@ -598,3 +598,57 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* ── Replay scoreboard (the signature) ────────────────────────────────────
+   Chips reveal with a hard clip from the left; a liquidation flashes the red
+   card once. Reduced motion gets the final state with no animation. */
+@layer components {
+  .chip-in {
+    animation: chip-in var(--dur-reveal) var(--motion-out) both;
+  }
+  .red-card-flash {
+    animation:
+      chip-in var(--dur-reveal) var(--motion-out) both,
+      red-card 900ms var(--motion-out) 1;
+  }
+  .red-card {
+    display: inline-block;
+    width: 8px;
+    height: 11px;
+    flex: none;
+    background: var(--danger);
+    transform: rotate(8deg);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .chip-in,
+    .red-card-flash {
+      animation: none;
+    }
+  }
+}
+
+@keyframes chip-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes red-card {
+  0%,
+  100% {
+    background: var(--danger-soft);
+  }
+  30% {
+    background: var(--danger);
+    color: var(--ground);
+  }
+}
+
+/* Archivo's fi/fl ligatures leave a gap when the width axis is in play. Letters stay separate. */
+html {
+  font-variant-ligatures: no-common-ligatures;
+}
+
