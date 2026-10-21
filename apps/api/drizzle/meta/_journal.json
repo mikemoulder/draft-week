@@ -15,6 +15,13 @@
       "when": 1792613588108,
       "tag": "0001_data",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792615068368,
+      "tag": "0002_leagues",
+      "breakpoints": true
     }
   ]
 }
