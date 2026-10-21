@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // packages/shared ships TypeScript source
+  transpilePackages: ["@draftweek/shared"],
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
