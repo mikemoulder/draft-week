@@ -7,13 +7,16 @@ When the design changes, change this file first, then the code.
 
 ## 0. Thesis
 
+> v2, 2026-10-21 23:40 UTC. The user asked for warm, creative and visually rich, with real icons, beyond the
+> skill's rigid directions. v1 (black scoreboard, zero radius, mono) is superseded; its storyboard survives.
+
 ```text
-THESIS      A stadium scoreboard for Strike traders: the page is a game being played, not a product being sold. It refuses to look like an exchange.
-WORLD       Near-black ground, Archivo 800 expanded display set like a jersey, mono for every number's label, hard 1px lines, zero radius. One accent, scoreboard yellow, means "the lead"; liquidation is the red card.
-STORY       Hook (five traders, seven days) -> live facts band -> last week's game of the week, replayed -> how a trade becomes a point -> nothing is simulated -> play.
-FIRST VIEW  1440: giant two-line headline left, lead + two actions, the facts marquee at the fold, the scoreboard's top edge visible. 375: the headline at 15vw, one action, marquee, scoreboard header.
-SIGNATURE   The replay scoreboard: two managers' totals in huge numerals, a 7-day lead line drawing day by day, trader chips lighting with points, a red card flashing on a liquidation.
-REFUSES     Candlestick charts and trading-terminal chrome; casino gold, coins and confetti; gradient blobs, glass cards and floating 3D.
+THESIS      A trading-card club under floodlights: every Strike trader is a collectible card you draft into a five-card hand, and the week is a match you watch. It refuses to look like an exchange.
+WORLD       Warm night ground (plum-navy) lit by sunset floodlight glows; Bricolage Grotesque for display and numbers, Figtree for text; rounded cards with tier frames (bronze, silver, gold, legend); Phosphor duotone icons; sunset orange is the action, gold means the lead, red is the red card.
+STORY       Hook with a fanned hand of this week's top real cards -> live facts with icons -> last week's game of the week, replayed -> how a trade becomes a point -> nothing is simulated -> play.
+FIRST VIEW  1440: headline left, lead + orange action, a fanned hand of five real trader cards right, glowing; facts strip at the fold. 375: headline, action, the hand as an overlapping row, facts.
+SIGNATURE   The trader card: crest generated from the account (colors, pattern, jersey number), an overall rating from last week, a tier frame, a style badge. It appears in the hero hand, the draft room and the replay.
+REFUSES     Candlestick charts and terminal chrome; stock photos, AI art and fake player faces; flat grey dashboards.
 ```
 
 ---
@@ -59,19 +62,23 @@ REFUSES     Candlestick charts and trading-terminal chrome; casino gold, coins a
 
 ## 3. Direction
 
-**Chosen:** bold-signal from `references/directions.md`, dark first.
+**Chosen (v2):** custom, outside the six directions: "floodlit card club". It borrows soft-product's warmth and
+radius, bold-signal's display scale, and luminous-dark's atmosphere field, on purpose, because the user asked for a
+warm, creative, collectible feel that none of the six alone gives.
 
-**Why this and not luminous-dark:** luminous-dark is discreet and technical (a privacy product); a fantasy league is loud, social and competitive, and its natural reference is a sports broadcast, not a terminal.
+**Why not v1 (bold-signal):** too rigid and cold for a social game; the user rejected it. The card is a better
+signature than the scoreboard because it is the object people collect, compare and share.
 
 | Dial | Setting |
 |---|---|
-| Ground | dark only (`#0B0B0B`); the one inverted band uses bone `#F2F0E9` |
-| Type voice | heavy display: Archivo 800 at 125% width for display and scores; Archivo 400/600 normal width for body; mono for labels |
-| Density | dense and rhythmic: bands, ruled rows, a marquee |
-| Corners | none. Zero radius everywhere |
-| Surfaces | hard 1px lines; full-contrast 1px for interactive frames; offset hard shadow only on the floating sheet |
-| Color strategy | monochrome + one accent (scoreboard yellow) + the red card (danger) as a state |
-| Fonts | display/body: Archivo (Google, OFL, free); mono: JetBrains Mono (Google, OFL, free). Self-hosted by next/font, no runtime CDN |
+| Ground | warm dark: plum-navy `#15112A`, with two radial floodlight glows (orange, pink) at the top of the page |
+| Type voice | Bricolage Grotesque 800 for display and every number (warm, quirky grotesque); Figtree 400/600/700 for text and labels |
+| Density | balanced: generous hero, dense cards |
+| Corners | round: cards 20, panels 24, tiles 16, buttons and chips as pills |
+| Surfaces | soft elevation on cards, hairlines in warm white at low alpha, a chunky 4px "game button" underside on the primary action |
+| Color strategy | warm base + sunset orange action + gold (the lead, gold cards) + red card; four style colors only inside cards (degen pink, scalper sky, swing mint, steady lilac) |
+| Icons | Phosphor (MIT), duotone weight in features and badges, regular weight in UI |
+| Fonts | Bricolage Grotesque and Figtree, Google Fonts, OFL, self-hosted by next/font |
 
 ### Calibration
 
@@ -204,89 +211,45 @@ Four routes. The trader detail is a sheet inside the draft room, not a route.
 
 ---
 
-## 6. System
+## 6. System (v2)
 
 ### Color
 
-| Token | Dark (only mode) | Use |
+| Token | Value | Use |
 |---|---|---|
-| ground | #0B0B0B | the page |
-| surface / surface-2 | #151515 / #1E1E1E | stages, panels, pressed |
-| panel / tile | #111111 / #151515 | cards, blocks |
-| fg / fg-soft / fg-mute / fg-faint | #F2F0E9 / #D6D3CA / #9A978F / #6B6963 | text strengths |
-| line / line-strong | #2A2A2A / #F2F0E9 | rules, interactive frames |
-| action / on-action | #F2F0E9 / #0B0B0B | the primary button (bone, not yellow) |
-| accent / accent-soft / on-accent-soft | #FFD23F / rgb(255 210 63 / 0.12) / #FFE48A | the lead: leader's total, leading worm, points just scored |
-| danger / danger-soft | #FF4D5E / rgb(255 77 94 / 0.14) | the red card (liquidation), errors |
-| success / warning | #5EE08A / #FF9F43 | state only (saved, locked) |
-
-Accent rule, in one sentence: yellow appears only on whoever is ahead and on points as they land, never on buttons, links, nav or decoration.
+| ground / surface / surface-2 | #15112A / #1E1838 / #282046 | page, panels, pressed |
+| panel / tile | #1B1533 / #221B3D | cards and blocks |
+| fg / fg-soft / fg-mute / fg-faint | #FFF6EA / #EADFD0 / #B3A8C4 / #7D7396 | warm white to lavender grey |
+| line / line-strong | warm white at 10% / 28% | hairlines |
+| action / on-action | #FF7A3D / #1A0B02 | the one primary action per section, with a #B3471A 4px underside |
+| accent (gold) | #FFC93C | the lead, points as they land, gold tier |
+| danger (red card) | #FF4D6D | liquidation, errors |
+| success / warning | #3DDC97 / #FF9F43 | state only |
+| style colors | degen #FF5C8A, scalper #5CC8FF, swing #3DDC97, steady #B794FF | card backgrounds and badges only |
+| tier frames | bronze #D98C5F, silver #C9CFDA, gold #FFC93C, legend pink to orange to gold | card borders only |
 
 ### Type
 
-| Role | Size (375 to 1440) | Line height | Tracking | Weight | Font | Use |
-|---|---|---|---|---|---|---|
-| display-xl | clamp(56px, 9vw, 152px) | 0.88 | -0.05em | 800, wdth 125 | Archivo | hero only |
-| display-l | clamp(36px, 5vw, 72px) | 0.95 | -0.04em | 800, wdth 125 | Archivo | section claims, scoreboard totals |
-| display-m | clamp(24px, 2.6vw, 36px) | 1.05 | -0.03em | 800, wdth 125 | Archivo | day totals, league names |
-| title | 20px | 1.2 | -0.02em | 700 | Archivo | card and column titles |
-| lead | 19px (17px at 375) | 1.5 | 0 | 400 | Archivo | the sentence under a heading |
-| body | 16px | 1.55 | 0 | 400 | Archivo | |
-| small | 14px | 1.5 | 0 | 400 | Archivo | meta |
-| label | 12px | 1.2 | +0.06em | 500 uppercase | JetBrains Mono | eyebrows, column heads, chips |
-| num | per role | 1 | -0.02em | 800, tabular-nums | Archivo | points, totals |
+| Role | Size | Line height | Tracking | Weight | Font |
+|---|---|---|---|---|---|
+| display-xl | clamp(48px, 7.5vw, 120px) | 0.92 | -0.035em | 800 | Bricolage Grotesque |
+| display-l | clamp(34px, 4.6vw, 64px) | 0.98 | -0.03em | 800 | Bricolage Grotesque |
+| display-m | clamp(24px, 2.4vw, 34px) | 1.05 | -0.02em | 800 | Bricolage Grotesque |
+| title | 20px | 1.2 | -0.01em | 700 | Figtree |
+| lead | 17 to 20px | 1.5 | 0 | 400 | Figtree |
+| body / small | 16 / 14px | 1.55 / 1.5 | 0 | 400 | Figtree |
+| label | 12px | 1.2 | +0.08em, uppercase | 700 | Figtree |
+| num | per role | 1 | -0.02em | 800, tabular | Bricolage Grotesque |
 
-Ratio check: hero 152 / body 16 = 9.5 at 1440 (bold-signal intends type as image; at 375 it is 56/16 = 3.5). Display tracking within -0.03 to -0.05. Two families, three weights (400, 700, 800).
+### Shape, elevation, motion
 
-### Space and layout
-
-| Token | Value |
+| Thing | Decision |
 |---|---|
-| page max width | 1440px |
-| gutter (375 / 768 / 1440) | 16 / 19 / 36 (clamp(16px, 2.5vw, 40px)) |
-| section padding | clamp(72px, 9vw, 128px) |
-| heading to content | 40px |
-| grid gap (tiles / columns) | 0, columns are separated by 1px rules |
-| text column / prose measure | 560px lead, 640px prose |
-
-### Shape and elevation
-
-| Component | Radius | Border | Shadow |
-|---|---|---|---|
-| button | 0 | primary: none (bone fill); secondary: 1px line-strong | none |
-| input | 0 | 1px line, 1px line-strong on focus | none |
-| chip | 0 | 1px line | none |
-| tile | 0 | 1px line | none |
-| card | 0 | 1px line | none |
-| panel | 0 | 1px line-strong | none |
-| feature card | n/a | | |
-| product frame (sheet, dialog) | 0 | 1px line-strong | 6px 6px 0 #F2F0E9 |
-
-### Motion
-
-| Token | Value |
-|---|---|
-| ease out | cubic-bezier(0.7, 0, 0.3, 1) |
-| ease in-out | cubic-bezier(0.7, 0, 0.3, 1) |
-| micro (hover, press) | 100ms |
-| UI (sheets, tabs) | 160ms |
-| reveal | 280ms, clip-path from the left, no fade, no translate |
-| signature loop | 900ms per day, 60ms chip stagger, plays on button press, not on load |
-| reduced motion | final state of everything; marquee stops |
-
-### Components
-
-| Component | Decision |
-|---|---|
-| Nav | full-width 64px bar, sticky, 1px line bottom; wordmark 800 expanded; links mono 12px; one bone action; at 375 wordmark + action only |
-| Buttons | 48 (primary, bone fill), 44 (secondary outline), arrow link (mono). One primary per section |
-| Surfaces | rows and ruled columns by default; panel only for the scoreboard and the draft board; chips for traders |
-| Inputs | 48px, zero radius, mono placeholder, bone focus ring 2px |
-| Labels / eyebrows | mono 12px uppercase +0.06em, fg-mute |
-| Status chips | league status (SETUP, DRAFTING, READY, LIVE, FINAL) and trader style; LIVE gets a 6px danger dot that pulses |
-| Footer | giant cropped wordmark, one ruled link row, the not-affiliated line |
-| Icons | almost none: arrows as text glyphs, a 1.5px stroke copy icon, a red card glyph (a rotated red rectangle) |
-| Imagery | product UI only (the scoreboard, the draft board); no photos, no illustrations |
+| radius | chip 999, button 999, input 14, tile 16, card 20, panel 24 |
+| card shadow | 0 18px 40px -18px rgb(0 0 0 / 0.7) |
+| hover | cards lift 6px and straighten their tilt, 200ms |
+| motion | ease cubic-bezier(0.2, 0.8, 0.2, 1); 160ms UI, 420ms reveals; the replay keeps 900ms per day |
+| reduced motion | final states, no tilt animation, no pulse |
 
 ---
 
@@ -307,9 +270,9 @@ Ratio check: hero 152 / body 16 = 9.5 at 1440 (bold-signal intends type as image
 2. Bot names ("Margin Call Mike") could read as cute. Fix: they appear only as manager names in mono, never as characters or avatars; real trader handles carry the screen.
 3. The draft room could become a spreadsheet. Fix: one table with four columns, the style chip as the only color, the pick action on the row, and the draft board as the loud element.
 
-**The screenshot sentence.**
+**The screenshot sentence (v2).**
 
-> A black scoreboard where two lineups of real Strike traders race across seven days, the totals tied at 92 with one trader flagged by a red card.
+> A fanned hand of glowing trading cards of real Strike traders, gold and silver frames with crests and ratings, next to "Five traders. Seven days." under a sunset floodlight.
 
 One site.
 
