@@ -21,8 +21,12 @@ export type PrevWeek = {
   avgLeverage: number | null;
 };
 
+// Thresholds from week 2026-10-12: median average leverage was ~18x and the top quarter ran 29x+,
+// so "degen" means clearly above the crowd, not just the default 20x.
+export const DEGEN_LEVERAGE = 30;
+
 export function styleOf(s: Pick<PrevWeek, "trades" | "activeDays" | "liquidations" | "avgLeverage">): TraderStyle {
-  if ((s.avgLeverage ?? 0) >= 20 || s.liquidations >= 2) return "degen";
+  if ((s.avgLeverage ?? 0) >= DEGEN_LEVERAGE || s.liquidations >= 2) return "degen";
   if (s.trades / Math.max(s.activeDays, 1) >= 40) return "scalper";
   if (s.trades <= 15) return "swing";
   return "steady";

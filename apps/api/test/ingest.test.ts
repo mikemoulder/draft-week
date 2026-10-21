@@ -98,6 +98,8 @@ describe.skipIf(!url)("ingest", () => {
     strike.board.push(
       entry("alice", 120, { nickname: "Alice" }),
       entry("bob", 40, { ada_handle: "bobby" }),
+      entry("carol", 9, { blockchain_address: "addr1qyhky3efqxgdcau6ll2ldcdq83jg5z6kkr7mdf0h7sd4e2y3x6vktdvqekhazmchqqt4cn6j7np0xrp7qktueejj0e4q0mn2ms" }),
+      entry("dave", 9),
       entry("vault_slp", 900_000),
       entry("mm-bot", 50_000),
       entry("idle", 0),
@@ -107,8 +109,10 @@ describe.skipIf(!url)("ingest", () => {
     expect(rows.map((r) => [r.accountId, r.name])).toEqual([
       ["alice", "Alice"],
       ["bob", "$bobby"],
+      ["carol", "addr1qyh…mn2ms"],
+      ["dave", "trader-dave"],
     ]);
-    expect(await db.select().from(traderEquity)).toHaveLength(2);
+    expect(await db.select().from(traderEquity)).toHaveLength(4);
   });
 
   it("backfills two weeks, ignores older fills, and scores each day", async () => {

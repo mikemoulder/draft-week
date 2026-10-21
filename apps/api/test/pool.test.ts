@@ -9,7 +9,8 @@ const url = process.env.TEST_DATABASE_URL;
 
 describe("styleOf", () => {
   it("tags high leverage or repeated liquidations as degen, then scalper, swing, steady", () => {
-    expect(styleOf({ trades: 50, activeDays: 5, liquidations: 0, avgLeverage: 25 })).toBe("degen");
+    expect(styleOf({ trades: 50, activeDays: 5, liquidations: 0, avgLeverage: 35 })).toBe("degen");
+    expect(styleOf({ trades: 50, activeDays: 5, liquidations: 0, avgLeverage: 20 })).toBe("steady");
     expect(styleOf({ trades: 50, activeDays: 5, liquidations: 2, avgLeverage: 3 })).toBe("degen");
     expect(styleOf({ trades: 400, activeDays: 5, liquidations: 0, avgLeverage: 5 })).toBe("scalper");
     expect(styleOf({ trades: 9, activeDays: 3, liquidations: 0, avgLeverage: 5 })).toBe("swing");

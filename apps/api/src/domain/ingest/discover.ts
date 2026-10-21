@@ -12,7 +12,9 @@ const MAX_PAGES = 15;
 export function displayName(e: LeaderboardEntry): string {
   if (e.nickname?.trim()) return e.nickname.trim();
   if (e.ada_handle?.trim()) return `$${e.ada_handle.trim().replace(/^\$/, "")}`;
-  return e.account_id.slice(0, 8);
+  const addr = e.blockchain_address?.trim();
+  if (addr) return `${addr.slice(0, 8)}…${addr.slice(-5)}`;
+  return `trader-${e.account_id.slice(0, 8)}`;
 }
 
 export function isDraftable(e: LeaderboardEntry): boolean {
