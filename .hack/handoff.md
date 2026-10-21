@@ -22,8 +22,8 @@ trader cards with generated crests, ratings and tiers, Phosphor icons. Name: FTL
 ```text
 Ran:     API tests, 60 passed (throwaway Postgres on :5441)
 Ran:     web typecheck, eslint, next build -> clean
-Ran:     Playwright guest flow against a production build + live API (.hack is not the place for the
-         script; it lives in the session scratchpad): signin -> create -> draft x5 -> lineup -> play -> results,
+Ran:     node scripts/e2e-guest-flow.mjs http://127.0.0.1:3978 (production build + live API):
+         signin -> create -> draft x5 -> lineup -> play -> results,
          19 s, 0 console errors, screenshots at 1440 and 390. Test guests deleted from prod afterwards
 Not yet: a real browser wallet extension; og:image; a phone with a real touch screen
 ```
