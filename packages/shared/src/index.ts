@@ -54,11 +54,17 @@ export const WeekStats = z.object({
 });
 export type WeekStats = z.infer<typeof WeekStats>;
 
+export const CardTier = z.enum(["legend", "gold", "silver", "bronze"]);
+export type CardTier = z.infer<typeof CardTier>;
+
 // Pool cards show the week BEFORE the league's week, so nobody drafts with hindsight.
+// rating (55 to 99) and tier come from where last week's points rank within this pool.
 export const PoolTrader = z.object({
   accountId: z.string(),
   name: z.string(),
   style: TraderStyle,
+  rating: z.number(),
+  tier: CardTier,
   prevWeek: WeekStats,
 });
 export type PoolTrader = z.infer<typeof PoolTrader>;
@@ -196,6 +202,8 @@ export const Showcase = z.object({
   league: LeagueState,
   featuredMatchupId: z.string(),
   stats: ShowcaseStats,
+  // This week's top cards (rated on last week), for the landing page's hand of cards.
+  stars: z.array(PoolTrader),
 });
 export type Showcase = z.infer<typeof Showcase>;
 

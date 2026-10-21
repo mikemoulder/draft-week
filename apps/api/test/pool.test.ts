@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { createDb } from "../src/db/client.js";
 import { traderDays, traders } from "../src/db/schema.js";
-import { draftPool, playableWeeks, styleOf } from "../src/domain/traders/pool.js";
+import { draftPool, playableWeeks, rateCards, styleOf } from "../src/domain/traders/pool.js";
 
 const url = process.env.TEST_DATABASE_URL;
 
@@ -15,6 +15,18 @@ describe("styleOf", () => {
     expect(styleOf({ trades: 400, activeDays: 5, liquidations: 0, avgLeverage: 5 })).toBe("scalper");
     expect(styleOf({ trades: 9, activeDays: 3, liquidations: 0, avgLeverage: 5 })).toBe("swing");
     expect(styleOf({ trades: 60, activeDays: 5, liquidations: 1, avgLeverage: 5 })).toBe("steady");
+  });
+});
+
+describe("rateCards", () => {
+  it("rates the best 99 and the worst 55, with tiers by percentile and shared ranks on ties", () => {
+    const points = Array.from({ length: 101 }, (_, i) => i);
+    const cards = rateCards(points);
+    expect(cards[100]).toEqual({ rating: 99, tier: "legend" });
+    expect(cards[0]).toEqual({ rating: 55, tier: "bronze" });
+    expect(cards[85]?.tier).toBe("gold");
+    expect(cards[60]?.tier).toBe("silver");
+    expect(rateCards([5, 5, 1])).toEqual([rateCards([5, 5, 1])[1], rateCards([5, 5, 1])[0], { rating: 55, tier: "bronze" }]);
   });
 });
 
@@ -69,6 +81,8 @@ describe.skipIf(!url)("draft pool", () => {
     const pool = await draftPool(db, "2026-10-12");
     expect(pool.map((p) => p.accountId)).toEqual(["a", "b"]);
     expect(pool[0]?.prevWeek).toMatchObject({ points: 15, trades: 20, activeDays: 2, winRate: 50 });
+    expect(pool[0]).toMatchObject({ rating: 99, tier: "legend" });
+    expect(pool[1]).toMatchObject({ rating: 55, tier: "bronze" });
     expect(pool[1]?.prevWeek.trades).toBe(20); // not the 500 from the league week
   });
 

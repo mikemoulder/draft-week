@@ -1,5 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
-import type { PoolTrader, TraderStyle, WeekInfo, WeekStatus } from "@draftweek/shared";
+import type { CardTier, PoolTrader, TraderStyle, WeekInfo, WeekStatus } from "@draftweek/shared";
 import type { Db } from "../../db/client.js";
 import { traderDays, traders } from "../../db/schema.js";
 import { addWeeks, weekBounds, weekIdOf } from "../scoring/weeks.js";
@@ -62,14 +62,32 @@ async function prevWeekStats(db: Db, weekId: string): Promise<PrevWeek[]> {
   return rows as PrevWeek[];
 }
 
+/**
+ * Card rating from rank within the pool: the best trader rates 99, the worst 55. Tiers by percentile:
+ * legend top 3%, gold next 17%, silver next 30%, bronze the rest.
+ */
+export function rateCards(points: number[]): { rating: number; tier: CardTier }[] {
+  const n = points.length;
+  const sorted = [...points].sort((a, b) => a - b);
+  return points.map((p) => {
+    // fraction of the pool this trader beat (ties share the lower rank)
+    const beaten = sorted.findIndex((x) => x >= p);
+    const pct = n > 1 ? beaten / (n - 1) : 1;
+    const tier: CardTier = pct >= 0.97 ? "legend" : pct >= 0.8 ? "gold" : pct >= 0.5 ? "silver" : "bronze";
+    return { rating: 55 + Math.round(44 * pct), tier };
+  });
+}
+
 /** The draft pool for a league on weekId, ranked by last week's points. */
 export async function draftPool(db: Db, weekId: string): Promise<PoolTrader[]> {
   const rows = await prevWeekStats(db, weekId);
+  const ratings = rateCards(rows.map((r) => r.points));
   return rows
-    .map((r) => ({
+    .map((r, i) => ({
       accountId: r.accountId,
       name: r.name,
       style: styleOf(r),
+      ...(ratings[i] as { rating: number; tier: CardTier }),
       prevWeek: {
         points: r.points,
         pnl: Math.round(r.pnl * 100) / 100,

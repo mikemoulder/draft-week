@@ -135,7 +135,8 @@ export function createShowcase(db: Db, opts: { now?: () => Date } = {}) {
         const ingested = await lastSuccessfulIngest(db);
         if (ingested !== null && ingested > weekBounds(lastWeek).end.getTime() + 10 * 60_000) games.set(lastWeek, game);
       }
-      return { ...game, stats: await currentStats(lastWeek) };
+      const stars = (await draftPool(db, weekIdOf(now()))).slice(0, 12);
+      return { ...game, stats: await currentStats(lastWeek), stars };
     },
   };
 }

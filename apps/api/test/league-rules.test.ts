@@ -19,6 +19,8 @@ const trader = (accountId: string, points: number, activeDays = 5): PoolTrader =
   accountId,
   name: accountId,
   style: "steady",
+  rating: 70,
+  tier: "silver",
   prevWeek: { points, pnl: 0, trades: 20, activeDays, winRate: 50, liquidations: 0 },
 });
 
