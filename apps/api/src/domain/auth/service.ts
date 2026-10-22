@@ -127,11 +127,14 @@ export function createAuthService(db: Db, opts: { origin: string; now?: () => Da
     /** Which of these wallet addresses have a Strike account. Used before signing, to sign with that one. */
     async strikeAccounts(chain: Chain, addresses: string[]) {
       if (!opts.strike) return [];
-      const normalized = [...new Set(addresses.map((a) => normalizeAddress(chain, a)).flatMap((n) => (n.ok ? [n.address] : [])))];
+      const normalized = addresses.flatMap((input) => {
+        const n = normalizeAddress(chain, input);
+        return n.ok ? [{ input, address: n.address }] : [];
+      });
       const found = await Promise.all(
-        normalized.map(async (address) => {
+        normalized.map(async ({ input, address }) => {
           const account = await opts.strike?.accountByAddress(address).catch(() => null);
-          return account ? { address, accountId: account.account_id, blockchain: account.blockchain } : null;
+          return account ? { input, address, accountId: account.account_id, blockchain: account.blockchain } : null;
         }),
       );
       return found.filter((a) => a !== null);

@@ -134,6 +134,20 @@ describe.skipIf(!url)("sign-in flow", () => {
     expect(((await res.json()) as Me).wallets).toEqual([{ chain: "ethereum", address: e.address }]);
   });
 
+  it("finds which wallet address has a Strike account, keeping the wallet's own form", async () => {
+    const w = cardanoWallet();
+    const other = cardanoWallet();
+    const withStrike = createAuthService(db, {
+      origin: ORIGIN,
+      strike: {
+        accountByAddress: async (a: string) => (a === w.bech32 ? { account_id: "acc-1", blockchain: "cardano", blockchain_address: a } : null),
+      },
+    });
+    expect(await withStrike.strikeAccounts("cardano", [other.hex, w.hex])).toEqual([
+      { input: w.hex, address: w.bech32, accountId: "acc-1", blockchain: "cardano" },
+    ]);
+  });
+
   it("refuses unknown chains and malformed bodies", async () => {
     const junk = await call("/auth/challenge", { json: { chain: "dogecoin", address: "x" } });
     expect(junk.status).toBe(400);

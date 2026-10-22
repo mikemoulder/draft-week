@@ -227,7 +227,8 @@ export type LeagueState = z.infer<typeof LeagueState>;
 // ── Strike accounts ─────────────────────────────────────────────────────────
 
 export const StrikeAccountsRequest = z.object({ chain: Chain, addresses: z.array(z.string().min(20).max(200)).min(1).max(20) });
-export const StrikeAccount = z.object({ address: z.string(), accountId: z.string(), blockchain: z.string() });
+// `input` is the address exactly as the wallet gave it (hex for Cardano); `address` is Strike's form.
+export const StrikeAccount = z.object({ input: z.string(), address: z.string(), accountId: z.string(), blockchain: z.string() });
 export type StrikeAccount = z.infer<typeof StrikeAccount>;
 
 // ── Showcase (public, landing page) ────────────────────────────────────────
