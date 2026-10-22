@@ -56,6 +56,8 @@ apps/api/src/domain/ingest/     Strike data into Postgres
 
 - Strike is called only from `apps/api/src/strike.ts`. Base paths: trading `/v2`, market data `/price/v2`,
   stats `/stat/v1`. Always send a User-Agent (Cloudflare blocks default library agents).
+  One exception: `apps/web/lib/strike-copy.ts` (Back your squad) calls Strike from the browser, because the
+  signing key must stay on the device. Nothing else in `apps/web` calls Strike.
 - The browser only talks to the web origin. Never call the VPS hostname from client code.
 - No database access from `apps/web`. All data goes through the API.
 - We never store a key that can trade. Strike API wallet keys stay on the device that created them.

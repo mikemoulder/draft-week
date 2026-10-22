@@ -1,12 +1,12 @@
 # Handoff
 
-**As of:** `79096e1` · Thu 2026-10-22 · squads session
+**As of:** `ea68281` · Thu 2026-10-22 · copy trading session
 
 ## Next step
 
-The user tries the live site with their OKX wallet (sign-in list, Strike account step, squad builder). Then:
-"Back your squad" copy trading (needs a builder code from the user), og:image + favicon, README for judges,
-demo video, make the repo public, submit by Fri 12:00 UTC.
+Set NEXT_PUBLIC_FTL_BUILDER_CODE (Vercel env, or a default in lib/strike-copy.ts) with the user's builder code,
+check it with a request-signature probe, then the user backs one trader for $20 with their own wallet. Then:
+og:image + favicon, README for judges, demo video, make the repo public, submit by Fri 12:00 UTC.
 
 ## Current status
 
@@ -28,7 +28,9 @@ Ran:     web typecheck, eslint, next build -> clean
 Ran:     node e2e.mjs http://127.0.0.1:3978 (production build + live API):
          signin -> create -> trader sheet -> affordable filter -> add 5 -> save and play -> results,
          17.3 s, 0 console errors, screenshots at 1440 and 390. Test guests deleted from prod afterwards
-Not yet: a real browser wallet extension (OKX on Ethereum especially); og:image; a real phone
+Ran:     Back your squad in a real browser (local build, fake builder code, fake Phantom, faked session):
+         guest message, live balance + minimum ($20) checks, Ed25519 key made, Strike 404 "builder code not found"
+Not yet: a real copy subscription (needs the user's wallet + funds); og:image; a real phone
 ```
 
 ## Do not repeat
@@ -47,13 +49,15 @@ autoSquad / canAdd reserve                 reserve the sum of the cheapest remai
 Static-only app with localStorage leagues  rejected by the user: needs accounts and cross-device state
 Entry-fee prize pools, referral funding    rejected: zero-sum / only pays on new users
 Snake draft with exclusive picks           replaced by the FPL budget model at the user's request
+verify-signature with a throwaway wallet   creates a real Strike account on mainnet. Only probe request-signature
+Repeated headless runs against Vercel     Vercel Security Checkpoint 403s this VPS. Test on a local build instead
 ```
 
 ## Remaining work (commit roadmap)
 
 ```text
 1-5. Foundation, auth (Cardano, Solana, Ethereum), data, leagues, UI     DONE
-6. Back your squad: copy the picked traders via /v2/copy/subscribe        needs builder code
+6. Back your squad: BUILT (ea68281), hidden until the builder code env is set. Untested with a real wallet
 7. Hardening: og:image, favicon, README, demo video, repo public, submit
 Cut order if late:   copy trading -> live calendar leagues -> Solana/Ethereum sign-in
 ```
