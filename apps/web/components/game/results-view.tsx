@@ -6,6 +6,8 @@ import type { LeagueState } from "@draftweek/shared";
 import { ReplayScoreboard } from "@/components/product/replay-scoreboard";
 import { cx } from "@/components/primitives";
 import { pts } from "@/lib/format";
+import { BUILDER_CODE } from "@/lib/strike-copy";
+import { BackSquadButton } from "./back-squad";
 import { totals } from "@/lib/replay";
 
 export function ResultsView({ league }: { league: LeagueState }) {
@@ -26,6 +28,15 @@ export function ResultsView({ league }: { league: LeagueState }) {
           caption={league.status === "live" ? `Live: ${days} of 7 days in. Points update every five minutes.` : undefined}
         />
       </section>
+      {league.myMemberId && BUILDER_CODE ? (
+        <section aria-label="Back your squad" className="flex flex-col items-start gap-4 rounded-panel border border-line p-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="t-title">Believe in your five?</h2>
+            <p className="t-small mt-1 text-fg-mute">Copy them on Strike and their next trades open in your account, within limits you set.</p>
+          </div>
+          <BackSquadButton league={league} className="shrink-0" />
+        </section>
+      ) : null}
       <aside className="grid gap-8 lg:grid-cols-[5fr_7fr]">
         <section aria-label="Standings" className="rounded-panel bg-tile p-6">
           <h2 className="t-display-m mb-4">Standings</h2>

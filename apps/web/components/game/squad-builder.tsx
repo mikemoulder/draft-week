@@ -10,6 +10,7 @@ import { cx } from "@/components/primitives";
 import { toast } from "@/components/states";
 import { api } from "@/lib/api";
 import { STYLE_META } from "@/lib/styles";
+import { BackSquadButton } from "./back-squad";
 import { TraderSheet } from "./trader-sheet";
 
 type Slot = string | null;
@@ -275,6 +276,7 @@ export function SquadBuilder({ league, pool, onChange }: { league: LeagueState; 
           <button type="button" className={cx("btn btn-lg", league.replay && isOwner ? "btn-ghost" : "btn-action")} disabled={!complete || !dirty || busy !== null} onClick={save}>
             <FloppyDisk size={18} weight="duotone" aria-hidden /> {busy === "save" ? "Saving…" : !dirty && saved ? "Squad saved" : "Save squad"}
           </button>
+          {saved && !dirty && !league.replay ? <BackSquadButton league={league} /> : null}
           <p className="t-small text-center text-fg-mute">
             {!full
               ? `Pick ${5 - picked.length} more trader${5 - picked.length === 1 ? "" : "s"}.`
