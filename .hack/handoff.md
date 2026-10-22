@@ -4,8 +4,8 @@
 
 ## Next step
 
-Set NEXT_PUBLIC_FTL_BUILDER_CODE (Vercel env, or a default in lib/strike-copy.ts) with the user's builder code,
-check it with a request-signature probe, then the user backs one trader for $20 with their own wallet. Then:
+The user backs one trader for $20 with their own wallet on the live site (builder code "FTL" is live and
+verified with a request-signature probe; it is case-sensitive, "ftl" is 404). Then:
 og:image + favicon, README for judges, demo video, make the repo public, submit by Fri 12:00 UTC.
 
 ## Current status
@@ -57,7 +57,7 @@ Repeated headless runs against Vercel     Vercel Security Checkpoint 403s this V
 
 ```text
 1-5. Foundation, auth (Cardano, Solana, Ethereum), data, leagues, UI     DONE
-6. Back your squad: BUILT (ea68281), hidden until the builder code env is set. Untested with a real wallet
+6. Back your squad: LIVE with builder code FTL. Untested with a real wallet and real funds
 7. Hardening: og:image, favicon, README, demo video, repo public, submit
 Cut order if late:   copy trading -> live calendar leagues -> Solana/Ethereum sign-in
 ```
