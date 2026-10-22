@@ -3,11 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PoolTrader } from "@draftweek/shared";
-import { DraftView } from "@/components/game/draft-view";
 import { LeagueHeader } from "@/components/game/league-header";
-import { LineupView } from "@/components/game/lineup-view";
 import { ResultsView } from "@/components/game/results-view";
-import { SetupView } from "@/components/game/setup-view";
+import { SquadBuilder } from "@/components/game/squad-builder";
 import { useLeague } from "@/components/game/use-league";
 import { Container } from "@/components/primitives";
 import { useSession } from "@/components/session";
@@ -49,7 +47,7 @@ export function LeagueScreen({ id }: { id: string }) {
     );
   }
 
-  if (!league || (league.status !== "setup" && !pool)) {
+  if (!league || (league.status === "picking" && !pool)) {
     return (
       <Container className="flex flex-col gap-4 py-12">
         <div className="skeleton h-24" />
@@ -61,9 +59,7 @@ export function LeagueScreen({ id }: { id: string }) {
   return (
     <Container className="py-10 md:py-14">
       <LeagueHeader league={league} />
-      {league.status === "setup" ? <SetupView league={league} onChange={setLeague} /> : null}
-      {league.status === "drafting" && pool ? <DraftView league={league} pool={pool} onChange={setLeague} /> : null}
-      {league.status === "ready" && pool ? <LineupView key={league.lineups.length} league={league} pool={pool} onChange={setLeague} /> : null}
+      {league.status === "picking" && pool ? <SquadBuilder league={league} pool={pool} onChange={setLeague} /> : null}
       {league.status === "live" || league.status === "final" ? <ResultsView league={league} /> : null}
     </Container>
   );

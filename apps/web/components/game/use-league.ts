@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import type { LeagueState } from "@draftweek/shared";
 import { api, ApiError } from "@/lib/api";
 
-const POLL_MS = 2000;
+const POLL_MS = 5000;
 
-/** The league, kept fresh: polls every 2 s while people are joining or drafting. */
+/** The league, kept fresh: polls every 5 s while managers can still join and pick. */
 export function useLeague(id: string) {
   const [league, setLeague] = useState<LeagueState | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
@@ -25,7 +25,7 @@ export function useLeague(id: string) {
     return () => clearTimeout(first);
   }, [refresh]);
 
-  const live = league?.status === "setup" || league?.status === "drafting";
+  const live = league?.status === "picking";
   useEffect(() => {
     if (!live) return;
     const t = setInterval(() => void refresh(), POLL_MS);

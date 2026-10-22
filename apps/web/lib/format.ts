@@ -8,17 +8,15 @@ export function weekRange(weekId: string): string {
 }
 
 export const STATUS_LABEL: Record<LeagueStatus, string> = {
-  setup: "Setup",
-  drafting: "Drafting",
-  ready: "Ready",
+  picking: "Picking",
   live: "Live",
   final: "Final",
 };
 
 export const WEEK_NOTE: Record<WeekInfo["status"], string> = {
-  final: "Finished. Draft now and play the whole week straight away",
-  live: "In progress. Points so far count as soon as you draft",
-  upcoming: "Starts Monday. Draft now, scores arrive daily",
+  final: "Finished. Pick a squad and play the whole week straight away",
+  live: "In progress",
+  upcoming: "Starts Monday. Pick a squad now, scores arrive daily",
 };
 
 export const pts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));

@@ -24,7 +24,7 @@ export function memberName(league: LeagueState, memberId: string): string {
 }
 
 export function lineupDays(league: LeagueState, memberId: string): Chip[][] {
-  const lineup = league.lineups.find((l) => l.memberId === memberId);
+  const lineup = league.squads.find((l) => l.memberId === memberId);
   if (!lineup) return DAYS.map(() => []);
   const points = new Map(league.points.map((p) => [`${p.accountId}:${p.day}`, p]));
   const subs = league.matchups
