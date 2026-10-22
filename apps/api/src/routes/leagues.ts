@@ -1,5 +1,5 @@
 import { Hono, type Context } from "hono";
-import { CreateLeagueRequest, JoinLeagueRequest, LineupRequest, PickRequest } from "@draftweek/shared";
+import { CreateLeagueRequest, JoinLeagueRequest, SquadRequest } from "@draftweek/shared";
 import type { LeagueService, Viewer } from "../domain/leagues/service.js";
 import type { Result } from "../domain/result.js";
 import { body, isUuid, requireMe, type AppEnv } from "../http.js";
@@ -26,11 +26,7 @@ export function leagueRoutes(leagues: LeagueService) {
     const id = c.req.param("id");
     return isUuid(id) ? reply(c, await leagues.state(id, viewer(c))) : c.json({ error: "league not found" }, 404);
   });
-  r.post("/leagues/:id/start", async (c) => reply(c, await leagues.startDraft(viewer(c), c.req.param("id"))));
-  r.post("/leagues/:id/picks", body(PickRequest), async (c) =>
-    reply(c, await leagues.pick(viewer(c), c.req.param("id"), c.req.valid("json").accountId)),
-  );
-  r.put("/leagues/:id/lineup", body(LineupRequest), async (c) => reply(c, await leagues.setLineup(viewer(c), c.req.param("id"), c.req.valid("json"))));
+  r.put("/leagues/:id/squad", body(SquadRequest), async (c) => reply(c, await leagues.setSquad(viewer(c), c.req.param("id"), c.req.valid("json"))));
   r.post("/leagues/:id/play", async (c) => reply(c, await leagues.play(viewer(c), c.req.param("id"))));
 
   return r;

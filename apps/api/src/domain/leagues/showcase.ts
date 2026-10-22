@@ -8,7 +8,8 @@ import { fills, traderDays, traders } from "../../db/schema.js";
 import { lastSuccessfulIngest } from "../ingest/run.js";
 import { addWeeks, weekBounds, weekIdOf } from "../scoring/weeks.js";
 import { draftPool } from "../traders/pool.js";
-import { BOT_NAMES, LEAGUE_SIZE, botChoice, defaultLineup, scoreLeague, seatForPick, totalPicks, type PointsBook } from "./rules.js";
+import { BOT_NAMES, LEAGUE_SIZE, autoSquad, scoreLeague, squadCost, type PointsBook } from "./rules.js";
+import { BASE_BUDGET } from "@draftweek/shared";
 
 const STATS_TTL_MS = 60_000;
 
@@ -38,26 +39,25 @@ export function createShowcase(db: Db, opts: { now?: () => Date } = {}) {
 
   async function buildGame(weekId: string) {
     const pool = await draftPool(db, weekId);
-    if (pool.length < totalPicks(LEAGUE_SIZE)) return null;
-
-    const members = BOT_NAMES.slice(0, LEAGUE_SIZE).map((name, seat) => ({ id: `bot-${seat}`, name, isBot: true, seat }));
-    const taken = new Set<string>();
-    const picks: LeagueState["picks"] = [];
-    for (let pickNo = 0; pickNo < totalPicks(LEAGUE_SIZE); pickNo++) {
-      const member = members[seatForPick(pickNo, LEAGUE_SIZE)] as (typeof members)[number];
-      const choice = botChoice(pool.filter((t) => !taken.has(t.accountId)), `showcase:${weekId}:${pickNo}`);
-      if (!choice) return null;
-      taken.add(choice.accountId);
-      picks.push({ pickNo, memberId: member.id, accountId: choice.accountId });
-    }
-
-    const prevPoints = new Map(pool.map((t) => [t.accountId, t.prevWeek.points]));
-    const lineups = members.map((m) => ({
-      memberId: m.id,
-      ...defaultLineup(picks.filter((p) => p.memberId === m.id).map((p) => p.accountId), prevPoints),
+    const prices = new Map(pool.map((t) => [t.accountId, t.price]));
+    const members = BOT_NAMES.slice(0, LEAGUE_SIZE).map((name, seat) => ({
+      id: `bot-${seat}`,
+      name,
+      isBot: true,
+      seat,
+      hasSquad: true,
+      budget: BASE_BUDGET,
+      bonus: 0,
     }));
+    const lineups = [];
+    for (const m of members) {
+      const squad = autoSquad(pool, BASE_BUDGET, `showcase:${weekId}:${m.id}`);
+      if (!squad) return null;
+      lineups.push({ memberId: m.id, ...squad, spent: squadCost(squad, prices) });
+    }
+    const picks = lineups.flatMap((l) => [...l.starters, ...l.bench].map((accountId) => ({ accountId })));
 
-    const accountIds = picks.map((p) => p.accountId);
+    const accountIds = [...new Set(picks.map((p) => p.accountId))];
     const rows = await db
       .select()
       .from(traderDays)
@@ -93,25 +93,27 @@ export function createShowcase(db: Db, opts: { now?: () => Date } = {}) {
     })[0];
     if (!featured) return null;
 
-    const names = await db
-      .select({ accountId: traders.accountId, name: traders.name })
-      .from(traders)
-      .where(inArray(traders.accountId, accountIds));
+    const styleOf = new Map(pool.map((t) => [t.accountId, t.style]));
+    const names = (
+      await db
+        .select({ accountId: traders.accountId, name: traders.name, avatarUrl: traders.avatarUrl })
+        .from(traders)
+        .where(inArray(traders.accountId, accountIds))
+    ).map((t) => ({ ...t, style: styleOf.get(t.accountId) ?? ("steady" as const) }));
 
     const league: LeagueState = {
       id: `showcase-${weekId}`,
       name: "Game of the week",
       weekId,
       status: "final",
+      replay: true,
       inviteCode: "",
       size: LEAGUE_SIZE,
       ownerMemberId: "bot-0",
       myMemberId: null,
       daysRevealed: 7,
       members,
-      picks,
-      onTheClock: null,
-      lineups,
+      squads: lineups,
       matchups,
       standings,
       points,

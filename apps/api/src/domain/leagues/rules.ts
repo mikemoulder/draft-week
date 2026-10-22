@@ -19,18 +19,11 @@ export const BOT_NAMES = [
   "Stop Loss Stella",
 ];
 
-// ── Draft ───────────────────────────────────────────────────────────────────
+// ── Squads ──────────────────────────────────────────────────────────────────
 
-export const totalPicks = (size: number) => size * ROSTER_SIZE;
+export type LineupShape = { captainId: string; starters: string[]; bench: string[] };
 
-/** Snake order: round 0 goes seat 0..n-1, round 1 goes n-1..0, and so on. */
-export function seatForPick(pickNo: number, size: number): number {
-  const round = Math.floor(pickNo / size);
-  const i = pickNo % size;
-  return round % 2 === 0 ? i : size - 1 - i;
-}
-
-// Small deterministic PRNG so a bot's pick is reproducible from (league, pick number).
+// Small deterministic PRNG so a bot's squad is reproducible from its seed.
 function seeded(seed: string): () => number {
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
@@ -41,20 +34,6 @@ function seeded(seed: string): () => number {
   };
 }
 
-/** Bots draft like a sensible human: last week's points and activity matter, with some noise. */
-export function botChoice(available: PoolTrader[], seed: string): PoolTrader | null {
-  if (available.length === 0) return null;
-  const rand = seeded(seed);
-  const scored = available
-    .map((t) => ({ t, score: t.prevWeek.points + t.prevWeek.activeDays * 2 + rand() * 12 }))
-    .sort((a, b) => b.score - a.score);
-  return scored[Math.floor(rand() * Math.min(3, scored.length))]?.t ?? null;
-}
-
-// ── Lineups ─────────────────────────────────────────────────────────────────
-
-export type LineupShape = { captainId: string; starters: string[]; bench: string[] };
-
 /** Best three by last week's points start, the best of them captains. */
 export function defaultLineup(roster: string[], prevPoints: Map<string, number>): LineupShape {
   const ranked = [...roster].sort((a, b) => (prevPoints.get(b) ?? 0) - (prevPoints.get(a) ?? 0) || a.localeCompare(b));
@@ -62,35 +41,75 @@ export function defaultLineup(roster: string[], prevPoints: Map<string, number>)
   return { captainId: starters[0] ?? "", starters, bench: ranked.slice(STARTERS) };
 }
 
-export function lineupError(lineup: LineupShape, roster: string[]): string | null {
-  const all = [...lineup.starters, ...lineup.bench];
-  if (lineup.starters.length !== STARTERS || lineup.bench.length !== BENCH) return `pick ${STARTERS} starters and ${BENCH} on the bench`;
-  if (new Set(all).size !== all.length) return "a trader can only be in one slot";
-  if (all.length !== roster.length || !all.every((id) => roster.includes(id))) return "the lineup must use exactly your drafted traders";
-  if (!lineup.starters.includes(lineup.captainId)) return "the captain must be one of your starters";
+/**
+ * A sensible squad within budget, for bots and for managers who never picked. Traders are scored
+ * on last week's points and activity with some noise, then taken best-first as long as the budget
+ * left still covers the cheapest remaining traders for every open slot.
+ */
+export function autoSquad(pool: PoolTrader[], budget: number, seed: string): LineupShape | null {
+  if (pool.length < ROSTER_SIZE) return null;
+  const rand = seeded(seed);
+  const byPrice = [...pool].sort((a, b) => a.price - b.price);
+  const ranked = pool
+    .map((t) => ({ t, score: t.prevWeek.points + t.prevWeek.activeDays * 2 + rand() * 14 }))
+    .sort((a, b) => b.score - a.score)
+    .map((x) => x.t);
+  const picked = new Set<PoolTrader>();
+  let left = budget;
+  // what the cheapest `slots` traders still available (other than `skip`) would cost
+  const reserve = (slots: number, skip: PoolTrader) => {
+    let sum = 0;
+    let n = 0;
+    for (const t of byPrice) {
+      if (n === slots) break;
+      if (t === skip || picked.has(t)) continue;
+      sum += t.price;
+      n++;
+    }
+    return n === slots ? sum : Infinity;
+  };
+  for (const t of ranked) {
+    if (picked.size === ROSTER_SIZE) break;
+    if (t.price + reserve(ROSTER_SIZE - picked.size - 1, t) <= left) {
+      picked.add(t);
+      left -= t.price;
+    }
+  }
+  if (picked.size < ROSTER_SIZE) return null;
+  const chosen = [...picked];
+  return defaultLineup(
+    chosen.map((t) => t.accountId),
+    new Map(chosen.map((t) => [t.accountId, t.prevWeek.points])),
+  );
+}
+
+/** Why a squad is not allowed, or null. Prices come from the league week's pool. */
+export function squadError(squad: LineupShape, prices: Map<string, number>, budget: number): string | null {
+  const all = [...squad.starters, ...squad.bench];
+  if (squad.starters.length !== STARTERS || squad.bench.length !== BENCH) return `pick ${STARTERS} starters and ${BENCH} on the bench`;
+  if (new Set(all).size !== all.length) return "a trader can only be in your squad once";
+  if (!all.every((id) => prices.has(id))) return "every trader must come from this week's list";
+  if (!squad.starters.includes(squad.captainId)) return "the captain must be one of your starters";
+  const spent = squadCost(squad, prices);
+  if (spent > budget) return `that squad costs ${spent} credits and your budget is ${budget}`;
   return null;
 }
 
+export const squadCost = (squad: LineupShape, prices: Map<string, number>) =>
+  [...squad.starters, ...squad.bench].reduce((sum, id) => sum + (prices.get(id) ?? 0), 0);
+
 // ── Status ──────────────────────────────────────────────────────────────────
 
-export type LeagueTimes = {
-  weekId: string;
-  draftStartedAt: Date | null;
-  draftCompletedAt: Date | null;
-  playedAt: Date | null;
-};
+export type LeagueTimes = { weekId: string; createdAt: Date; playedAt: Date | null };
+
+/** A league created after its week ended is a replay: it is played on demand by its owner. */
+export const isReplay = (l: Pick<LeagueTimes, "weekId" | "createdAt">) => l.createdAt.getTime() >= weekBounds(l.weekId).end.getTime();
 
 export function leagueStatus(l: LeagueTimes, now: Date): LeagueStatus {
-  if (!l.draftStartedAt) return "setup";
-  if (!l.draftCompletedAt) return "drafting";
+  if (isReplay(l)) return l.playedAt ? "final" : "picking";
   const { start, end } = weekBounds(l.weekId);
-  const weekOver = end.getTime() <= now.getTime();
-  // A league drafted before or during the week follows the calendar. One drafted after the week
-  // ended is a replay and waits for the owner to play it.
-  const replay = l.draftCompletedAt.getTime() >= end.getTime();
-  if (replay) return l.playedAt ? "final" : "ready";
-  if (weekOver) return "final";
-  return start.getTime() <= now.getTime() ? "live" : "ready";
+  if (end.getTime() <= now.getTime()) return "final";
+  return start.getTime() <= now.getTime() ? "live" : "picking";
 }
 
 /** Days whose results may be shown: none before the week, today's index + 1 while live, all 7 after. */
@@ -100,7 +119,7 @@ export function daysRevealed(status: LeagueStatus, weekId: string, now: Date): n
   return Math.min(7, Math.floor((now.getTime() - weekBounds(weekId).start.getTime()) / DAY_MS) + 1);
 }
 
-export const lineupLocked = (status: LeagueStatus) => status === "live" || status === "final";
+export const squadsLocked = (status: LeagueStatus) => status !== "picking";
 
 // ── Scoring ─────────────────────────────────────────────────────────────────
 

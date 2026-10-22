@@ -1,23 +1,22 @@
 import { randomInt } from "node:crypto";
 import { and, asc, eq, inArray, lt } from "drizzle-orm";
-import type { DayPoints, LeagueState, LeagueSummary, LineupRequest, PoolTrader } from "@draftweek/shared";
+import { BASE_BUDGET, volumeBonus, type DayPoints, type LeagueState, type LeagueSummary, type PoolTrader, type SquadRequest } from "@draftweek/shared";
 import type { Db } from "../../db/client.js";
-import { leagueMembers, leagues, lineups, picks, traderDays, traders } from "../../db/schema.js";
+import { leagueMembers, leagues, squads, traderDays, traders, users } from "../../db/schema.js";
+import type { StrikeClient } from "../../strike.js";
 import { fail, ok, type Result } from "../result.js";
-import { weekBounds } from "../scoring/weeks.js";
 import { draftPool, playableWeeks } from "../traders/pool.js";
 import {
   BOT_NAMES,
   LEAGUE_SIZE,
-  botChoice,
+  autoSquad,
   daysRevealed,
-  defaultLineup,
+  isReplay,
   leagueStatus,
-  lineupError,
-  lineupLocked,
   scoreLeague,
-  seatForPick,
-  totalPicks,
+  squadCost,
+  squadError,
+  squadsLocked,
   type PointsBook,
 } from "./rules.js";
 
@@ -33,7 +32,7 @@ const inviteCode = () => Array.from({ length: 8 }, () => INVITE_ALPHABET[randomI
 export type LeagueService = ReturnType<typeof createLeagueService>;
 export type Viewer = { userId: string; displayName: string };
 
-export function createLeagueService(db: Db, opts: { now?: () => Date } = {}) {
+export function createLeagueService(db: Db, opts: { now?: () => Date; strike?: Pick<StrikeClient, "leaderboardFor"> } = {}) {
   const now = opts.now ?? (() => new Date());
 
   async function loadLeague(q: Db | Tx, id: string, forUpdate = false): Promise<League | null> {
@@ -46,57 +45,78 @@ export function createLeagueService(db: Db, opts: { now?: () => Date } = {}) {
     return q.select().from(leagueMembers).where(eq(leagueMembers.leagueId, leagueId)).orderBy(asc(leagueMembers.seat));
   }
 
-  /**
-   * Fill every pick that belongs to a bot, starting at the current pick, until a human is on the
-   * clock or the draft is complete. Completing the draft sets everyone's default lineup.
-   */
-  async function advanceDraft(tx: Tx, league: League, pool: PoolTrader[]) {
-    const members = await membersOf(tx, league.id);
-    const bySeat = new Map(members.map((m) => [m.seat, m]));
-    const taken = new Set((await tx.select({ a: picks.accountId }).from(picks).where(eq(picks.leagueId, league.id))).map((r) => r.a));
-    let pickNo = taken.size;
-    const total = totalPicks(league.size);
-
-    while (pickNo < total) {
-      const member = bySeat.get(seatForPick(pickNo, league.size));
-      if (!member || member.userId !== null) break;
-      const choice = botChoice(pool.filter((t) => !taken.has(t.accountId)), `${league.id}:${pickNo}`);
-      if (!choice) break;
-      await tx.insert(picks).values({ leagueId: league.id, pickNo, memberId: member.id, accountId: choice.accountId });
-      taken.add(choice.accountId);
-      pickNo++;
+  /** Extra credits from the user's own Strike volume over the last 7 days. 0 for guests or on any error. */
+  async function bonusFor(userId: string): Promise<number> {
+    if (!opts.strike) return 0;
+    const [user] = await db.select({ accountId: users.strikeAccountId }).from(users).where(eq(users.id, userId));
+    if (!user?.accountId) return 0;
+    try {
+      const [row] = await opts.strike.leaderboardFor([user.accountId], "7d");
+      return volumeBonus(row?.volume ?? 0);
+    } catch {
+      return 0;
     }
+  }
 
-    if (pickNo >= total) {
-      await tx.update(leagues).set({ draftCompletedAt: now() }).where(eq(leagues.id, league.id));
-      const prevPoints = new Map(pool.map((t) => [t.accountId, t.prevWeek.points]));
-      const all = await tx.select().from(picks).where(eq(picks.leagueId, league.id));
-      for (const m of members) {
-        const roster = all.filter((p) => p.memberId === m.id).map((p) => p.accountId);
-        const lu = defaultLineup(roster, prevPoints);
-        await tx.insert(lineups).values({ memberId: m.id, ...lu }).onConflictDoNothing();
-      }
+  /**
+   * At kick-off: bots take the empty seats, and every manager without a squad gets one picked for them,
+   * within their own budget. Idempotent: seats and squads already there are kept.
+   */
+  async function fillForKickoff(tx: Tx, league: League, pool: PoolTrader[]) {
+    const members = await membersOf(tx, league.id);
+    const usedNames = new Set(members.map((m) => m.displayName));
+    const botNames = BOT_NAMES.filter((n) => !usedNames.has(n));
+    for (let seat = 0; seat < league.size; seat++) {
+      if (members.some((m) => m.seat === seat)) continue;
+      const [bot] = await tx
+        .insert(leagueMembers)
+        .values({ leagueId: league.id, userId: null, displayName: botNames.shift() ?? `Bot ${seat + 1}`, seat })
+        .returning();
+      if (bot) members.push(bot);
+    }
+    const have = new Set(
+      (await tx.select({ m: squads.memberId }).from(squads).where(inArray(squads.memberId, members.map((m) => m.id)))).map((r) => r.m),
+    );
+    const prices = new Map(pool.map((t) => [t.accountId, t.price]));
+    for (const m of members) {
+      if (have.has(m.id)) continue;
+      const squad = autoSquad(pool, BASE_BUDGET + m.budgetBonus, `${league.id}:${m.id}`);
+      if (squad) await tx.insert(squads).values({ memberId: m.id, ...squad, spent: squadCost(squad, prices) }).onConflictDoNothing();
     }
   }
 
   async function state(leagueId: string, viewer: Viewer): Promise<Result<LeagueState>> {
-    const league = await loadLeague(db, leagueId);
+    let league = await loadLeague(db, leagueId);
     if (!league) return fail(404, "league not found");
-    const members = await membersOf(db, leagueId);
+    let members = await membersOf(db, leagueId);
     const me = members.find((m) => m.userId === viewer.userId) ?? null;
     if (!me) return fail(403, "you are not in this league");
 
     const at = now();
     const status = leagueStatus(league, at);
+    // A calendar league that has kicked off fills its seats and squads on first read.
+    if (status !== "picking" && members.length < league.size) {
+      const pool = await draftPool(db, league.weekId);
+      await db.transaction(async (tx) => {
+        const locked = (await loadLeague(tx, leagueId, true)) as League;
+        await fillForKickoff(tx, locked, pool);
+      });
+      league = (await loadLeague(db, leagueId)) as League;
+      members = await membersOf(db, leagueId);
+    }
+
     const revealed = daysRevealed(status, league.weekId, at);
-    const pickRows = await db.select().from(picks).where(eq(picks.leagueId, leagueId)).orderBy(asc(picks.pickNo));
-    const lineupRows = members.length
-      ? await db.select().from(lineups).where(inArray(lineups.memberId, members.map((m) => m.id)))
+    const squadRows = members.length ? await db.select().from(squads).where(inArray(squads.memberId, members.map((m) => m.id))) : [];
+    const visible = squadsLocked(status) ? squadRows : squadRows.filter((s) => s.memberId === me.id);
+    const accountIds = [...new Set(visible.flatMap((s) => [...s.starters, ...s.bench]))];
+    const traderRows = accountIds.length
+      ? await db
+          .select({ accountId: traders.accountId, name: traders.name, avatarUrl: traders.avatarUrl })
+          .from(traders)
+          .where(inArray(traders.accountId, accountIds))
       : [];
-    const accountIds = pickRows.map((p) => p.accountId);
-    const names = accountIds.length
-      ? await db.select({ accountId: traders.accountId, name: traders.name }).from(traders).where(inArray(traders.accountId, accountIds))
-      : [];
+    // Styles live on the pool (computed from last week); fall back to steady for anyone missing.
+    const styleOf = accountIds.length ? new Map((await draftPool(db, league.weekId)).map((t) => [t.accountId, t.style])) : new Map();
 
     const owner = members.find((m) => m.userId === league.ownerId) as MemberRow;
     const base = {
@@ -104,22 +124,26 @@ export function createLeagueService(db: Db, opts: { now?: () => Date } = {}) {
       name: league.name,
       weekId: league.weekId,
       status,
+      replay: isReplay(league),
       inviteCode: league.inviteCode,
       size: league.size,
       ownerMemberId: owner.id,
       myMemberId: me.id,
       daysRevealed: revealed,
-      members: members.map((m) => ({ id: m.id, name: m.displayName, isBot: m.userId === null, seat: m.seat })),
-      picks: pickRows.map((p) => ({ pickNo: p.pickNo, memberId: p.memberId, accountId: p.accountId })),
-      onTheClock:
-        status === "drafting" ? (members.find((m) => m.seat === seatForPick(pickRows.length, league.size))?.id ?? null) : null,
-      lineups: lineupRows.map((l) => ({ memberId: l.memberId, captainId: l.captainId, starters: l.starters, bench: l.bench })),
-      traders: names,
+      members: members.map((m) => ({
+        id: m.id,
+        name: m.displayName,
+        isBot: m.userId === null,
+        seat: m.seat,
+        hasSquad: squadRows.some((s) => s.memberId === m.id),
+        budget: BASE_BUDGET + m.budgetBonus,
+        bonus: m.budgetBonus,
+      })),
+      squads: visible.map((s) => ({ memberId: s.memberId, captainId: s.captainId, starters: s.starters, bench: s.bench, spent: s.spent })),
+      traders: traderRows.map((t) => ({ ...t, style: styleOf.get(t.accountId) ?? "steady" })),
     };
 
-    if (revealed === 0 || accountIds.length === 0) {
-      return ok({ ...base, matchups: [], standings: [], points: [] });
-    }
+    if (revealed === 0 || accountIds.length === 0) return ok({ ...base, matchups: [], standings: [], points: [] });
 
     const rows = await db
       .select()
@@ -133,9 +157,9 @@ export function createLeagueService(db: Db, opts: { now?: () => Date } = {}) {
       book.set(r.accountId, days);
       points.push({ accountId: r.accountId, day: r.day, points: r.points, liquidated: r.liquidations > 0 });
     }
-    const lineupBy = new Map(lineupRows.map((l) => [l.memberId, l]));
+    const squadBy = new Map(squadRows.map((s) => [s.memberId, s]));
     const scored = scoreLeague(
-      members.map((m) => ({ memberId: m.id, seat: m.seat, lineup: lineupBy.get(m.id) ?? null })),
+      members.map((m) => ({ memberId: m.id, seat: m.seat, lineup: squadBy.get(m.id) ?? null })),
       book,
       revealed,
     );
@@ -148,15 +172,16 @@ export function createLeagueService(db: Db, opts: { now?: () => Date } = {}) {
     async create(viewer: Viewer, input: { name: string; weekId: string }): Promise<Result<LeagueState>> {
       const weeks = await playableWeeks(db, now());
       if (!weeks.some((w) => w.id === input.weekId)) return fail(400, "that week cannot host a league");
+      const bonus = await bonusFor(viewer.userId);
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           const id = await db.transaction(async (tx) => {
             const [league] = await tx
               .insert(leagues)
-              .values({ weekId: input.weekId, name: input.name, ownerId: viewer.userId, inviteCode: inviteCode(), size: LEAGUE_SIZE })
+              .values({ weekId: input.weekId, name: input.name, ownerId: viewer.userId, inviteCode: inviteCode(), size: LEAGUE_SIZE, createdAt: now() })
               .returning({ id: leagues.id });
             const leagueId = (league as { id: string }).id;
-            await tx.insert(leagueMembers).values({ leagueId, userId: viewer.userId, displayName: viewer.displayName, seat: 0 });
+            await tx.insert(leagueMembers).values({ leagueId, userId: viewer.userId, displayName: viewer.displayName, seat: 0, budgetBonus: bonus });
             return leagueId;
           });
           return state(id, viewer);
@@ -170,82 +195,32 @@ export function createLeagueService(db: Db, opts: { now?: () => Date } = {}) {
     async join(viewer: Viewer, code: string): Promise<Result<LeagueState>> {
       const [league] = await db.select().from(leagues).where(eq(leagues.inviteCode, code.trim().toUpperCase()));
       if (!league) return fail(404, "no league with that invite code");
+      const bonus = await bonusFor(viewer.userId);
       const result = await db.transaction(async (tx) => {
         await loadLeague(tx, league.id, true);
         const members = await membersOf(tx, league.id);
         if (members.some((m) => m.userId === viewer.userId)) return ok(league.id);
-        if (leagueStatus(league, now()) !== "setup") return fail<string>(409, "the draft has already started");
+        if (leagueStatus(league, now()) !== "picking") return fail<string>(409, "this league has already kicked off");
         const free = Array.from({ length: league.size }, (_, i) => i).find((s) => !members.some((m) => m.seat === s));
         if (free === undefined) return fail<string>(409, "the league is full");
-        await tx.insert(leagueMembers).values({ leagueId: league.id, userId: viewer.userId, displayName: viewer.displayName, seat: free });
+        await tx.insert(leagueMembers).values({ leagueId: league.id, userId: viewer.userId, displayName: viewer.displayName, seat: free, budgetBonus: bonus });
         return ok(league.id);
       });
       return result.ok ? state(result.value, viewer) : result;
     },
 
-    async startDraft(viewer: Viewer, leagueId: string): Promise<Result<LeagueState>> {
+    async setSquad(viewer: Viewer, leagueId: string, input: SquadRequest): Promise<Result<LeagueState>> {
       const league = await loadLeague(db, leagueId);
       if (!league) return fail(404, "league not found");
-      if (league.ownerId !== viewer.userId) return fail(403, "only the league owner can start the draft");
-      const pool = await draftPool(db, league.weekId);
-      if (pool.length < totalPicks(league.size)) return fail(409, "not enough active traders that week to fill a draft");
-
-      const result = await db.transaction(async (tx) => {
-        const locked = (await loadLeague(tx, leagueId, true)) as League;
-        if (leagueStatus(locked, now()) !== "setup") return fail<null>(409, "the draft has already started");
-        const members = await membersOf(tx, leagueId);
-        const usedNames = new Set(members.map((m) => m.displayName));
-        const botNames = BOT_NAMES.filter((n) => !usedNames.has(n));
-        for (let seat = 0; seat < locked.size; seat++) {
-          if (members.some((m) => m.seat === seat)) continue;
-          await tx.insert(leagueMembers).values({ leagueId, userId: null, displayName: botNames.shift() ?? `Bot ${seat + 1}`, seat });
-        }
-        await tx.update(leagues).set({ draftStartedAt: now() }).where(eq(leagues.id, leagueId));
-        await advanceDraft(tx, locked, pool);
-        return ok(null);
-      });
-      return result.ok ? state(leagueId, viewer) : result;
-    },
-
-    async pick(viewer: Viewer, leagueId: string, accountId: string): Promise<Result<LeagueState>> {
-      const league = await loadLeague(db, leagueId);
-      if (!league) return fail(404, "league not found");
-      const pool = await draftPool(db, league.weekId);
-      if (!pool.some((t) => t.accountId === accountId)) return fail(400, "that trader is not in this week's pool");
-
-      const result = await db.transaction(async (tx) => {
-        const locked = (await loadLeague(tx, leagueId, true)) as League;
-        if (leagueStatus(locked, now()) !== "drafting") return fail<null>(409, "the draft is not running");
-        const members = await membersOf(tx, leagueId);
-        const me = members.find((m) => m.userId === viewer.userId);
-        if (!me) return fail<null>(403, "you are not in this league");
-        const made = await tx.select({ a: picks.accountId }).from(picks).where(eq(picks.leagueId, leagueId));
-        if (seatForPick(made.length, locked.size) !== me.seat) return fail<null>(409, "it is not your turn");
-        if (made.some((p) => p.a === accountId)) return fail<null>(409, "that trader has already been drafted");
-        await tx.insert(picks).values({ leagueId, pickNo: made.length, memberId: me.id, accountId });
-        await advanceDraft(tx, locked, pool);
-        return ok(null);
-      });
-      return result.ok ? state(leagueId, viewer) : result;
-    },
-
-    async setLineup(viewer: Viewer, leagueId: string, input: LineupRequest): Promise<Result<LeagueState>> {
-      const league = await loadLeague(db, leagueId);
-      if (!league) return fail(404, "league not found");
-      const status = leagueStatus(league, now());
-      if (status !== "ready") return fail(409, lineupLocked(status) ? "lineups are locked for this week" : "finish the draft first");
+      if (squadsLocked(leagueStatus(league, now()))) return fail(409, "squads are locked for this week");
       const members = await membersOf(db, leagueId);
       const me = members.find((m) => m.userId === viewer.userId);
       if (!me) return fail(403, "you are not in this league");
-      const roster = (await db.select({ a: picks.accountId }).from(picks).where(and(eq(picks.leagueId, leagueId), eq(picks.memberId, me.id)))).map(
-        (r) => r.a,
-      );
-      const problem = lineupError(input, roster);
+      const prices = new Map((await draftPool(db, league.weekId)).map((t) => [t.accountId, t.price]));
+      const problem = squadError(input, prices, BASE_BUDGET + me.budgetBonus);
       if (problem) return fail(400, problem);
-      await db
-        .insert(lineups)
-        .values({ memberId: me.id, ...input, updatedAt: now() })
-        .onConflictDoUpdate({ target: lineups.memberId, set: { ...input, updatedAt: now() } });
+      const row = { ...input, spent: squadCost(input, prices), updatedAt: now() };
+      await db.insert(squads).values({ memberId: me.id, ...row }).onConflictDoUpdate({ target: squads.memberId, set: row });
       return state(leagueId, viewer);
     },
 
@@ -253,17 +228,23 @@ export function createLeagueService(db: Db, opts: { now?: () => Date } = {}) {
       const league = await loadLeague(db, leagueId);
       if (!league) return fail(404, "league not found");
       if (league.ownerId !== viewer.userId) return fail(403, "only the league owner can play the week");
-      const replay = league.draftCompletedAt !== null && league.draftCompletedAt.getTime() >= weekBounds(league.weekId).end.getTime();
-      if (!replay || leagueStatus(league, now()) !== "ready") return fail(409, "only a drafted replay league can be played");
-      await db.update(leagues).set({ playedAt: now() }).where(eq(leagues.id, leagueId));
+      if (!isReplay(league) || leagueStatus(league, now()) !== "picking") return fail(409, "only a replay league can be played");
+      const members = await membersOf(db, leagueId);
+      const mine = members.find((m) => m.userId === viewer.userId);
+      const [hasSquad] = mine ? await db.select({ m: squads.memberId }).from(squads).where(eq(squads.memberId, mine.id)) : [];
+      if (!hasSquad) return fail(409, "pick your squad before you play the week");
+      const pool = await draftPool(db, league.weekId);
+      await db.transaction(async (tx) => {
+        const locked = (await loadLeague(tx, leagueId, true)) as League;
+        if (locked.playedAt) return;
+        await fillForKickoff(tx, locked, pool);
+        await tx.update(leagues).set({ playedAt: now() }).where(eq(leagues.id, leagueId));
+      });
       return state(leagueId, viewer);
     },
 
     async mine(viewer: Viewer): Promise<LeagueSummary[]> {
-      const rows = await db
-        .select({ leagueId: leagueMembers.leagueId })
-        .from(leagueMembers)
-        .where(eq(leagueMembers.userId, viewer.userId));
+      const rows = await db.select({ leagueId: leagueMembers.leagueId }).from(leagueMembers).where(eq(leagueMembers.userId, viewer.userId));
       const out: LeagueSummary[] = [];
       for (const { leagueId } of rows) {
         const s = await state(leagueId, viewer);

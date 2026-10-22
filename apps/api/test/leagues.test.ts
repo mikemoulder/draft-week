@@ -1,173 +1,185 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
-import type { LeagueState } from "@draftweek/shared";
+import type { LeagueState, PoolTrader, SquadRequest } from "@draftweek/shared";
 import { createApp } from "../src/app.js";
 import { createDb } from "../src/db/client.js";
 import { traderDays, traders, users } from "../src/db/schema.js";
 import { createAuthService } from "../src/domain/auth/service.js";
 import { createLeagueService, type Viewer } from "../src/domain/leagues/service.js";
 import { createShowcase } from "../src/domain/leagues/showcase.js";
+import { draftPool } from "../src/domain/traders/pool.js";
 
 const url = process.env.TEST_DATABASE_URL;
-const NOW = new Date("2026-10-21T12:00:00Z"); // week 2026-10-12 is finished: replay leagues
 
 describe.skipIf(!url)("leagues", () => {
   const { sql: conn, db } = createDb(url ?? "postgres://unused");
-  const leagues = createLeagueService(db, { now: () => NOW });
+  let clock = new Date("2026-10-21T12:00:00Z"); // week 2026-10-12 is finished: replay leagues
+  // Alice's Strike account traded $60,000 in the last 7 days: +35 credits.
+  const strike = { leaderboardFor: async (ids: string[]) => ids.map((id) => ({ account_id: id, volume: id === "alice-strike" ? 60_000 : 0 })) };
+  const leagues = createLeagueService(db, { now: () => clock, strike: strike as never });
   let alice: Viewer;
   let bob: Viewer;
   let carol: Viewer;
+  let pool: PoolTrader[];
 
   const must = <T>(r: { ok: true; value: T } | { ok: false; error: string }): T => {
     if (!r.ok) throw new Error(`expected ok, got: ${r.error}`);
     return r.value;
   };
   const err = (r: { ok: boolean; status?: number }) => (r.ok ? 200 : r.status);
-  const myTurn = (s: LeagueState) => s.onTheClock === s.myMemberId;
-  const available = (s: LeagueState, pool: string[]) => pool.find((a) => !s.picks.some((p) => p.accountId === a)) as string;
+  /** The five cheapest traders, so the squad always fits the base budget. */
+  const cheapSquad = (offset = 0): SquadRequest => {
+    const ids = [...pool].sort((a, b) => a.price - b.price).slice(offset, offset + 5).map((t) => t.accountId);
+    return { captainId: ids[0]!, starters: ids.slice(0, 3), bench: ids.slice(3) };
+  };
+  const pricey = (): SquadRequest => {
+    const ids = [...pool].sort((a, b) => b.price - a.price).slice(0, 5).map((t) => t.accountId);
+    return { captainId: ids[0]!, starters: ids.slice(0, 3), bench: ids.slice(3) };
+  };
 
   const POOL = Array.from({ length: 48 }, (_, i) => `t${String(i).padStart(2, "0")}`);
+  const row = (weekId: string, accountId: string, day: number, points: number, liquidations = 0) => ({
+    weekId,
+    accountId,
+    day,
+    pnl: points,
+    trades: 10,
+    closes: 10,
+    wins: 5,
+    liquidations,
+    firstLiquidationAt: liquidations ? new Date("2026-10-13T09:00:00Z") : null,
+    avgLeverage: 10,
+    equityRef: 1000,
+    points,
+    scoringVersion: 1,
+  });
 
   beforeAll(async () => {
     await migrate(db, { migrationsFolder: "drizzle" });
   });
 
   beforeEach(async () => {
-    await db.execute(sql`truncate users, wallets, sessions, auth_challenges, leagues, league_members, picks, lineups, traders, trader_days cascade`);
-    const [a, b, c] = await db.insert(users).values([{ displayName: "alice" }, { displayName: "bob" }, { displayName: "carol" }]).returning();
+    clock = new Date("2026-10-21T12:00:00Z");
+    await db.execute(sql`truncate users, wallets, sessions, auth_challenges, leagues, league_members, squads, traders, trader_days cascade`);
+    const [a, b, c] = await db
+      .insert(users)
+      .values([{ displayName: "alice", strikeAccountId: "alice-strike", strikeAddress: "addr1alice" }, { displayName: "bob" }, { displayName: "carol" }])
+      .returning();
     alice = { userId: a!.id, displayName: "alice" };
     bob = { userId: b!.id, displayName: "bob" };
     carol = { userId: c!.id, displayName: "carol" };
 
     await db.insert(traders).values(POOL.map((accountId) => ({ accountId, name: accountId.toUpperCase() })));
-    const row = (weekId: string, accountId: string, day: number, points: number, liquidations = 0) => ({
-      weekId,
-      accountId,
-      day,
-      pnl: points,
-      trades: 10,
-      closes: 10,
-      wins: 5,
-      liquidations,
-      firstLiquidationAt: liquidations ? new Date("2026-10-13T09:00:00Z") : null,
-      avgLeverage: 10,
-      equityRef: 1000,
-      points,
-      scoringVersion: 1,
-    });
     await db.insert(traderDays).values([
-      // previous week: the pool (48 traders, 40 picks needed)
+      // the weeks before 2026-10-12 and 2026-10-26 price the pool: 48 traders
       ...POOL.map((a, i) => row("2026-10-05", a, 0, 48 - i)),
-      // league week: everyone trades Monday, t01 is liquidated Tuesday
+      ...POOL.map((a, i) => row("2026-10-19", a, 0, 48 - i)),
+      // the replay week: everyone trades Monday, t01 is liquidated Tuesday
       ...POOL.map((a, i) => row("2026-10-12", a, 0, (i % 10) + 1)),
       row("2026-10-12", "t01", 1, -4, 1),
     ]);
+    pool = await draftPool(db, "2026-10-12");
   });
 
   afterAll(async () => {
     await conn.end();
   });
 
-  it("runs a solo replay league from creation to final results", async () => {
-    let s = must(await leagues.create(alice, { name: "Office league", weekId: "2026-10-12" }));
-    expect(s).toMatchObject({ status: "setup", members: [{ name: "alice", seat: 0, isBot: false }], matchups: [] });
-    expect(s.inviteCode).toMatch(/^[A-HJ-NP-Z2-9]{8}$/);
-
-    s = must(await leagues.startDraft(alice, s.id));
-    expect(s.status).toBe("drafting");
-    expect(s.members).toHaveLength(8);
-    expect(s.members.filter((m) => m.isBot)).toHaveLength(7);
-    expect(myTurn(s)).toBe(true); // seat 0 picks first
-
-    // out-of-pool, then a real pick; bots then pick until alice is back on the clock (pick 15)
-    expect(err(await leagues.pick(alice, s.id, "not-a-trader"))).toBe(400);
-    s = must(await leagues.pick(alice, s.id, "t00"));
-    expect(s.picks).toHaveLength(15);
-    expect(myTurn(s)).toBe(true);
-    expect(err(await leagues.pick(alice, s.id, "t00"))).toBe(409); // already drafted
-
-    while (s.status === "drafting") s = must(await leagues.pick(alice, s.id, available(s, POOL)));
-    expect(s.picks).toHaveLength(40);
-    expect(new Set(s.picks.map((p) => p.accountId)).size).toBe(40);
-    expect(s.status).toBe("ready");
-    expect(s.lineups).toHaveLength(8);
-    expect(s.daysRevealed).toBe(0);
-    expect(s.matchups).toEqual([]); // nothing revealed before the week is played
-
-    const mine = s.picks.filter((p) => p.memberId === s.myMemberId).map((p) => p.accountId);
-    expect(err(await leagues.setLineup(alice, s.id, { captainId: mine[4]!, starters: mine.slice(0, 3), bench: mine.slice(3) }))).toBe(400);
-    s = must(await leagues.setLineup(alice, s.id, { captainId: mine[1]!, starters: mine.slice(0, 3), bench: mine.slice(3) }));
-    expect(s.lineups.find((l) => l.memberId === s.myMemberId)?.captainId).toBe(mine[1]);
-
-    expect(err(await leagues.play(bob, s.id))).toBe(403);
-    s = must(await leagues.play(alice, s.id));
-    expect(s.status).toBe("final");
-    expect(s.daysRevealed).toBe(7);
-    expect(s.matchups).toHaveLength(4);
-    expect(s.standings).toHaveLength(8);
-    expect(s.points.length).toBeGreaterThan(0);
-    expect(err(await leagues.setLineup(alice, s.id, { captainId: mine[0]!, starters: mine.slice(0, 3), bench: mine.slice(3) }))).toBe(409);
-
-    const summaries = await leagues.mine(alice);
-    expect(summaries).toEqual([expect.objectContaining({ id: s.id, status: "final", members: 8 })]);
+  it("prices every trader between 20 and 60 credits and grades them", () => {
+    expect(Math.max(...pool.map((t) => t.price))).toBe(60);
+    expect(Math.min(...pool.map((t) => t.price))).toBe(20);
+    expect(new Set(pool.map((t) => t.grade)).size).toBeGreaterThan(1);
   });
 
-  it("lets friends join by invite before the draft, and not after", async () => {
+  it("runs a replay league: pick within budget, play, and score against bots", async () => {
+    let s = must(await leagues.create(alice, { name: "Office league", weekId: "2026-10-12" }));
+    expect(s).toMatchObject({ status: "picking", replay: true, squads: [], matchups: [] });
+    expect(s.members).toEqual([expect.objectContaining({ name: "alice", budget: 235, bonus: 35, hasSquad: false })]);
+    expect(s.inviteCode).toMatch(/^[A-HJ-NP-Z2-9]{8}$/);
+
+    expect(err(await leagues.play(alice, s.id))).toBe(409); // no squad yet
+    s = must(await leagues.setSquad(alice, s.id, cheapSquad()));
+    expect(s.squads).toEqual([expect.objectContaining({ memberId: s.myMemberId, spent: expect.any(Number) })]);
+    expect(s.squads[0]!.spent).toBeLessThanOrEqual(235);
+
+    s = must(await leagues.play(alice, s.id));
+    expect(s).toMatchObject({ status: "final", daysRevealed: 7 });
+    expect(s.members).toHaveLength(8);
+    expect(s.members.every((m) => m.hasSquad)).toBe(true);
+    expect(s.squads).toHaveLength(8); // everyone's squad is visible once the week is played
+    expect(s.matchups).toHaveLength(4);
+    expect(s.standings).toHaveLength(8);
+    expect(s.traders.length).toBeGreaterThan(0);
+    expect(err(await leagues.setSquad(alice, s.id, cheapSquad(1)))).toBe(409); // locked
+
+    expect(await leagues.mine(alice)).toEqual([expect.objectContaining({ id: s.id, status: "final", members: 8 })]);
+  });
+
+  it("enforces the budget, the captain rule and this week's list", async () => {
+    const s = must(await leagues.create(bob, { name: "Rules", weekId: "2026-10-12" }));
+    expect(s.members[0]).toMatchObject({ budget: 200, bonus: 0 }); // bob has no Strike account
+    const tooDear = await leagues.setSquad(bob, s.id, pricey());
+    expect(tooDear).toMatchObject({ ok: false, status: 400 });
+    expect((tooDear as { error: string }).error).toMatch(/your budget is 200/);
+    const sq = cheapSquad();
+    expect(err(await leagues.setSquad(bob, s.id, { ...sq, captainId: sq.bench[0]! }))).toBe(400);
+    expect(err(await leagues.setSquad(bob, s.id, { ...sq, starters: [sq.starters[0]!, sq.starters[1]!, "not-a-trader"] }))).toBe(400);
+  });
+
+  it("lets friends join, pick the same traders, and see only their own squad until kick-off", async () => {
     const created = must(await leagues.create(alice, { name: "Friends", weekId: "2026-10-12" }));
+    must(await leagues.setSquad(alice, created.id, cheapSquad()));
     expect(err(await leagues.state(created.id, bob))).toBe(403);
 
-    const joined = must(await leagues.join(bob, created.inviteCode.toLowerCase()));
-    expect(joined.members.map((m) => [m.name, m.seat])).toEqual([
+    let b = must(await leagues.join(bob, created.inviteCode.toLowerCase()));
+    expect(b.members.map((m) => [m.name, m.seat])).toEqual([
       ["alice", 0],
       ["bob", 1],
     ]);
-    expect(must(await leagues.join(bob, created.inviteCode)).members).toHaveLength(2); // joining twice is a no-op
+    b = must(await leagues.setSquad(bob, created.id, cheapSquad())); // same five as alice: allowed
+    expect(b.squads.map((x) => x.memberId)).toEqual([b.myMemberId]);
 
-    expect(err(await leagues.startDraft(bob, created.id))).toBe(403); // owner only
-    must(await leagues.startDraft(alice, created.id));
+    expect(err(await leagues.play(bob, created.id))).toBe(403); // owner only
+    must(await leagues.play(alice, created.id));
     expect(err(await leagues.join(carol, created.inviteCode))).toBe(409);
     expect(err(await leagues.join(carol, "NOPE1234"))).toBe(404);
   });
 
-  it("only lets the manager on the clock pick, even under concurrent requests", async () => {
-    const s = must(await leagues.create(alice, { name: "Race", weekId: "2026-10-12" }));
-    must(await leagues.join(bob, s.inviteCode));
-    must(await leagues.startDraft(alice, s.id));
+  it("locks a calendar league at the start of its week and fills it with bots", async () => {
+    const s = must(await leagues.create(alice, { name: "Next week", weekId: "2026-10-26" }));
+    expect(s).toMatchObject({ status: "picking", replay: false });
+    must(await leagues.setSquad(alice, s.id, cheapSquad()));
+    clock = new Date("2026-10-27T12:00:00Z"); // Tuesday of that week
+    const live = must(await leagues.state(s.id, alice));
+    expect(live).toMatchObject({ status: "live", daysRevealed: 2 });
+    expect(live.members).toHaveLength(8);
+    expect(err(await leagues.setSquad(alice, s.id, cheapSquad(1)))).toBe(409);
+    const [{ n }] = (await db.execute(sql`select count(*)::int as n from squads`)) as unknown as [{ n: number }];
+    expect(n).toBe(8);
+  });
 
-    expect(err(await leagues.pick(bob, s.id, "t05"))).toBe(409); // bob is seat 1, alice is up
-    const results = await Promise.all([leagues.pick(alice, s.id, "t00"), leagues.pick(alice, s.id, "t01")]);
-    expect(results.filter((r) => r.ok)).toHaveLength(1);
-    expect(results.filter((r) => !r.ok).map(err)).toEqual([409]);
-
-    const after = must(await leagues.state(s.id, bob));
-    expect(after.picks).toHaveLength(1);
-    expect(after.onTheClock).toBe(after.myMemberId); // now bob's turn
+  it("refuses the week in progress and weeks without data", async () => {
+    expect(err(await leagues.create(alice, { name: "Now", weekId: "2026-10-19" }))).toBe(400);
+    expect(err(await leagues.create(alice, { name: "Old", weekId: "2025-01-06" }))).toBe(400);
   });
 
   it("builds last week's game of the week from real data, without storing anything", async () => {
-    const showcase = createShowcase(db, { now: () => NOW });
+    const showcase = createShowcase(db, { now: () => clock });
     const first = await showcase.get();
     expect(first).not.toBeNull();
     const { league, featuredMatchupId, stats } = first!;
     expect(league).toMatchObject({ weekId: "2026-10-12", status: "final", daysRevealed: 7, myMemberId: null });
-    expect(league.members).toHaveLength(8);
-    expect(new Set(league.picks.map((p) => p.accountId)).size).toBe(40);
+    expect(league.squads).toHaveLength(8);
     expect(league.matchups.map((m) => m.id)).toContain(featuredMatchupId);
-    expect(league.standings).toHaveLength(8);
     expect(stats.tradersFollowed).toBe(48);
-
-    const again = await createShowcase(db, { now: () => NOW }).get();
-    expect(again?.league.picks).toEqual(league.picks); // same week, same seeds, same league
+    const again = await createShowcase(db, { now: () => clock }).get();
+    expect(again?.league.squads).toEqual(league.squads);
     const [{ n }] = (await db.execute(sql`select count(*)::int as n from leagues`)) as unknown as [{ n: number }];
     expect(n).toBe(0);
   });
 
-  it("refuses weeks that cannot host a league", async () => {
-    expect(err(await leagues.create(alice, { name: "Old", weekId: "2025-01-06" }))).toBe(400);
-  });
-
-  it("requires a session and a valid id over HTTP", async () => {
+  it("requires a session over HTTP", async () => {
     const app = createApp({
       proxySecret: "s".repeat(40),
       version: "test",
@@ -179,6 +191,10 @@ describe.skipIf(!url)("leagues", () => {
     });
     const h = { "x-proxy-secret": "s".repeat(40) };
     expect((await app.request("/leagues", { headers: h })).status).toBe(401);
-    expect((await app.request("/leagues/not-a-uuid/start", { method: "POST", headers: h })).status).toBe(401);
+    expect((await app.request("/weeks/2026-10-12/traders/t00", { headers: h })).status).toBe(200);
+    expect((await app.request("/weeks/2026-10-12/traders/nobody", { headers: h })).status).toBe(404);
+    // bob's user row has no Strike link
+    const [bobRow] = await db.select().from(users).where(eq(users.displayName, "bob"));
+    expect(bobRow?.strikeAccountId).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Db } from "../db/client.js";
 import { draftPool, playableWeeks } from "../domain/traders/pool.js";
+import { traderDetail } from "../domain/traders/detail.js";
 import { isWeekId } from "../domain/scoring/weeks.js";
 import type { AppEnv } from "../http.js";
 import type { ShowcaseService } from "../domain/leagues/showcase.js";
@@ -19,6 +20,13 @@ export function weekRoutes(db: Db, now: () => Date = () => new Date(), showcase?
     const id = c.req.param("id");
     if (!isWeekId(id)) return c.json({ error: "week id must be a Monday, e.g. 2026-10-12" }, 400);
     return c.json(await draftPool(db, id));
+  });
+
+  r.get("/weeks/:id/traders/:accountId", async (c) => {
+    const id = c.req.param("id");
+    if (!isWeekId(id)) return c.json({ error: "week id must be a Monday, e.g. 2026-10-12" }, 400);
+    const detail = await traderDetail(db, id, c.req.param("accountId"));
+    return detail ? c.json(detail) : c.json({ error: "that trader is not in this week's list" }, 404);
   });
 
   return r;

@@ -1,60 +1,65 @@
 import { describe, expect, it } from "vitest";
 import type { PoolTrader } from "@draftweek/shared";
 import {
-  botChoice,
+  autoSquad,
   daysRevealed,
   defaultLineup,
   leagueStatus,
-  lineupError,
   pairings,
   scoreLeague,
   scoreLineupDay,
-  seatForPick,
-  totalPicks,
+  squadCost,
+  squadError,
   type PointsBook,
   type TraderDay,
 } from "../src/domain/leagues/rules.js";
 import { dealHand } from "../src/domain/leagues/showcase.js";
 
-const trader = (accountId: string, points: number, activeDays = 5): PoolTrader => ({
+const trader = (accountId: string, points: number, activeDays = 5, price = 40): PoolTrader => ({
   accountId,
   name: accountId,
   style: "steady",
   rating: 70,
   tier: "silver",
-  prevWeek: { points, pnl: 0, trades: 20, activeDays, winRate: 50, liquidations: 0 },
+  grade: "B",
+  price,
+  avatarUrl: null,
+  prevWeek: { points, pnl: 0, returnPct: 0, trades: 20, activeDays, winRate: 50, liquidations: 0 },
 });
 
-describe("draft order", () => {
-  it("snakes: 0..7 then 7..0", () => {
-    const order = Array.from({ length: 16 }, (_, p) => seatForPick(p, 8));
-    expect(order).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 7, 6, 5, 4, 3, 2, 1, 0]);
-    expect(totalPicks(8)).toBe(40);
-  });
-
-  it("bots pick strong, active traders and are reproducible", () => {
-    const pool = [trader("weak", 2, 1), trader("ok", 20), trader("star", 60), trader("good", 45)];
-    const pick = botChoice(pool, "league-1:0");
-    expect(["star", "good", "ok"]).toContain(pick?.accountId);
-    expect(botChoice(pool, "league-1:0")?.accountId).toBe(pick?.accountId);
-    expect(botChoice([], "x")).toBeNull();
-  });
-});
-
-describe("lineups", () => {
+describe("squads", () => {
   const roster = ["a", "b", "c", "d", "e"];
+  const prices = new Map([["a", 60], ["b", 50], ["c", 40], ["d", 30], ["e", 20], ["f", 20]]);
+  const squad = { captainId: "a", starters: ["a", "b", "c"], bench: ["d", "e"] };
 
   it("starts the best three by last week and captains the best", () => {
     const prev = new Map([["a", 1], ["b", 9], ["c", 5], ["d", 7], ["e", 3]]);
     expect(defaultLineup(roster, prev)).toEqual({ captainId: "b", starters: ["b", "d", "c"], bench: ["e", "a"] });
   });
 
-  it("rejects lineups that break the rules", () => {
-    expect(lineupError({ captainId: "a", starters: ["a", "b", "c"], bench: ["d", "e"] }, roster)).toBeNull();
-    expect(lineupError({ captainId: "d", starters: ["a", "b", "c"], bench: ["d", "e"] }, roster)).toMatch(/captain/);
-    expect(lineupError({ captainId: "a", starters: ["a", "a", "c"], bench: ["d", "e"] }, roster)).toMatch(/one slot/);
-    expect(lineupError({ captainId: "a", starters: ["a", "b", "x"], bench: ["d", "e"] }, roster)).toMatch(/drafted/);
-    expect(lineupError({ captainId: "a", starters: ["a", "b"], bench: ["c", "d", "e"] }, roster)).toMatch(/3 starters/);
+  it("costs the sum of its prices and must fit the budget", () => {
+    expect(squadCost(squad, prices)).toBe(200);
+    expect(squadError(squad, prices, 200)).toBeNull();
+    expect(squadError(squad, prices, 199)).toMatch(/costs 200 credits and your budget is 199/);
+  });
+
+  it("rejects squads that break the rules", () => {
+    expect(squadError({ ...squad, captainId: "d" }, prices, 999)).toMatch(/captain/);
+    expect(squadError({ ...squad, starters: ["a", "a", "c"] }, prices, 999)).toMatch(/once/);
+    expect(squadError({ ...squad, starters: ["a", "b", "x"] }, prices, 999)).toMatch(/this week's list/);
+    expect(squadError({ ...squad, starters: ["a", "b"], bench: ["c", "d", "e"] }, prices, 999)).toMatch(/3 starters/);
+  });
+
+  it("builds a sensible bot squad that always fits the budget and is reproducible", () => {
+    const pool = Array.from({ length: 30 }, (_, i) => trader(`t${i}`, 60 - i * 2, 5, 49 - i));
+    for (const budget of [150, 200, 250]) {
+      const s = autoSquad(pool, budget, "league:bot-1");
+      expect(s).not.toBeNull();
+      expect(squadCost(s!, new Map(pool.map((t) => [t.accountId, t.price])))).toBeLessThanOrEqual(budget);
+      expect(new Set([...s!.starters, ...s!.bench]).size).toBe(5);
+    }
+    expect(autoSquad(pool, 200, "same")).toEqual(autoSquad(pool, 200, "same"));
+    expect(autoSquad(pool.slice(0, 4), 200, "x")).toBeNull();
   });
 });
 
@@ -62,27 +67,23 @@ describe("league status", () => {
   const week = "2026-10-12"; // Mon Oct 12 to Mon Oct 19
   const at = (s: string) => new Date(s);
 
-  it("moves through setup, drafting, ready, live and final for a league drafted before the week", () => {
-    const base = { weekId: week, draftStartedAt: null, draftCompletedAt: null, playedAt: null };
-    expect(leagueStatus(base, at("2026-10-10T00:00:00Z"))).toBe("setup");
-    const started = { ...base, draftStartedAt: at("2026-10-10T00:00:00Z") };
-    expect(leagueStatus(started, at("2026-10-10T01:00:00Z"))).toBe("drafting");
-    const drafted = { ...started, draftCompletedAt: at("2026-10-10T02:00:00Z") };
-    expect(leagueStatus(drafted, at("2026-10-11T00:00:00Z"))).toBe("ready");
-    expect(leagueStatus(drafted, at("2026-10-14T00:00:00Z"))).toBe("live");
-    expect(leagueStatus(drafted, at("2026-10-20T00:00:00Z"))).toBe("final");
+  it("is picking before the week, live during it and final after, for a league made in advance", () => {
+    const l = { weekId: week, createdAt: at("2026-10-08T00:00:00Z"), playedAt: null };
+    expect(leagueStatus(l, at("2026-10-11T00:00:00Z"))).toBe("picking");
+    expect(leagueStatus(l, at("2026-10-14T00:00:00Z"))).toBe("live");
+    expect(leagueStatus(l, at("2026-10-20T00:00:00Z"))).toBe("final");
   });
 
-  it("holds a replay league at ready until the owner plays it", () => {
-    const replay = { weekId: week, draftStartedAt: at("2026-10-21T00:00:00Z"), draftCompletedAt: at("2026-10-21T00:10:00Z"), playedAt: null };
-    expect(leagueStatus(replay, at("2026-10-21T01:00:00Z"))).toBe("ready");
+  it("holds a replay league at picking until the owner plays it", () => {
+    const replay = { weekId: week, createdAt: at("2026-10-21T00:00:00Z"), playedAt: null };
+    expect(leagueStatus(replay, at("2026-10-21T01:00:00Z"))).toBe("picking");
     expect(leagueStatus({ ...replay, playedAt: at("2026-10-21T01:00:00Z") }, at("2026-10-21T01:00:01Z"))).toBe("final");
   });
 
   it("reveals days up to today while live, all when final, none otherwise", () => {
     expect(daysRevealed("live", week, at("2026-10-14T12:00:00Z"))).toBe(3); // Wednesday
     expect(daysRevealed("final", week, at("2026-10-14T12:00:00Z"))).toBe(7);
-    expect(daysRevealed("ready", week, at("2026-10-14T12:00:00Z"))).toBe(0);
+    expect(daysRevealed("picking", week, at("2026-10-14T12:00:00Z"))).toBe(0);
   });
 });
 
