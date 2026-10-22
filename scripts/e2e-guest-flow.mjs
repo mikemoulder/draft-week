@@ -9,6 +9,7 @@ page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
 const shot = (n) => page.screenshot({ path: `${OUT}/${n}.png` });
 const t0 = Date.now();
+
 await page.goto(BASE + "/play");
 await page.waitForURL(/\/signin/);
 await shot("01-signin");
@@ -19,25 +20,33 @@ await page.getByRole("button", { name: "Create league" }).waitFor();
 await shot("02-create");
 await page.getByRole("button", { name: "Create league" }).click();
 await page.waitForURL(/\/leagues\//);
-await page.getByRole("button", { name: "Start the draft" }).waitFor();
-await shot("03-setup");
-await page.getByRole("button", { name: "Start the draft" }).click();
+
+// Squad builder: open one trader's details, then add five affordable traders.
+await page.getByRole("heading", { name: /./ }).first().waitFor();
+await page.locator("#trader-search").waitFor();
+await shot("03-squad-empty");
+await page.locator("section[aria-label='Traders'] li").first().click();
+await page.getByRole("dialog").waitFor();
+await page.waitForTimeout(1200);
+await shot("04-trader-detail");
+await page.keyboard.press("Escape");
+await page.locator("#affordable").check();
 for (let i = 0; i < 5; i++) {
-  await page.getByText("You're on the clock").waitFor({ timeout: 15000 });
-  if (i === 0) await shot("04-draft");
-  await page.locator("button:has-text('Draft'):not([disabled])").first().click();
-  await page.waitForTimeout(800);
+  await page.locator("section[aria-label='Traders'] button[aria-label^='Add ']:not([disabled])").first().click();
+  await page.waitForTimeout(150);
 }
-await page.getByRole("button", { name: /Play the week/ }).waitFor({ timeout: 15000 });
-await shot("05-lineup");
-await page.getByRole("button", { name: /Play the week/ }).click();
-await page.getByRole("heading", { name: "Standings" }).waitFor({ timeout: 15000 });
+await shot("05-squad-full");
+await page.getByRole("button", { name: /Save and play the week/ }).click();
+await page.getByRole("heading", { name: "Standings" }).waitFor({ timeout: 20000 });
 await page.waitForTimeout(8500);
 await shot("06-results");
 console.log("league url", page.url(), "ms", Date.now() - t0);
+
 await page.setViewportSize({ width: 390, height: 844 });
-await page.reload(); await page.getByRole("heading", { name: "Standings" }).waitFor();
-await page.waitForTimeout(8000); await shot("07-results-390");
+await page.reload();
+await page.getByRole("heading", { name: "Standings" }).waitFor();
+await page.waitForTimeout(6000);
+await shot("07-results-390");
 console.log("console errors:", errors.length ? errors : "none");
 const me = await page.evaluate(() => fetch("/api/me").then((r) => r.json()));
 console.log("TEST_USER", me?.id);
