@@ -69,7 +69,7 @@ export function createStrikeClient(opts: StrikeClientOptions = {}) {
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const res = await doFetch(base + path, {
-          headers: { "user-agent": "draft-week/1.0 (+https://draft-week.vercel.app)", accept: "application/json" },
+          headers: { "user-agent": "ftl/1.0 (+https://strike-ftl.vercel.app)", accept: "application/json" },
           signal: AbortSignal.timeout(timeoutMs),
         });
         if (res.status === 429 || res.status >= 500) throw new StrikeError(`strike ${res.status} on ${path}`, res.status);

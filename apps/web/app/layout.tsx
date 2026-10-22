@@ -18,7 +18,7 @@ const display = Bricolage_Grotesque({ subsets: ["latin"], axes: ["opsz"], variab
 const sans = Figtree({ subsets: ["latin"], variable: "--font-brand-sans", display: "swap" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://draft-week.vercel.app"),
+  metadataBase: new URL("https://strike-ftl.vercel.app"),
   title: { default: "FTL: Fantasy Trading League for Strike", template: "%s | FTL" },
   description:
     "FTL, the Fantasy Trading League. Draft five real Strike Finance traders. Every trade they make this week scores for you. Free to play, scored from Strike's public trade data.",
