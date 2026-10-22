@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import type { ChallengeResponse, Me } from "@draftweek/shared";
+import type { ChallengeResponse, Me, StrikeAccount } from "@draftweek/shared";
 import { ApiError, api } from "@/lib/api";
 import { connectWallet, type WalletOption } from "@/lib/wallets";
 
@@ -40,8 +40,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async (option: WalletOption) => {
     try {
       const wallet = await connectWallet(option);
-      const challenge = await api.post<ChallengeResponse>("/auth/challenge", { chain: wallet.chain, address: wallet.address });
-      const signed = await wallet.sign(challenge.message);
+      // Sign with the address Strike knows, so the session links to the user's Strike account.
+      const known = await api.post<StrikeAccount[]>("/strike/accounts", { chain: wallet.chain, addresses: wallet.addresses.slice(0, 20) }).catch(() => []);
+      const address = known[0]?.input ?? wallet.addresses[0] ?? "";
+      const challenge = await api.post<ChallengeResponse>("/auth/challenge", { chain: wallet.chain, address });
+      const signed = await wallet.sign(address, challenge.message);
       const user = await api.post<Me>("/auth/verify", { nonce: challenge.nonce, ...signed });
       setMe(user);
       return user;
