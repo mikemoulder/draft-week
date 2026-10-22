@@ -3,7 +3,7 @@
 ## What this is
 
 FTL (Fantasy Trading League, working name until 2026-10-21 was Draft Week) is a fantasy league for Strike Finance, a perpetuals exchange on Cardano. Players sign in with
-their wallet, draft five real Strike traders, pick a captain, and score points every day from those
+their wallet, pick five real Strike traders within a credit budget, name a captain, and score points every day from those
 traders' real trades on Strike. Built for the Strike Hackathon (Oct 21 to 23, 2026).
 
 ## Stack
@@ -33,6 +33,12 @@ Fantasy league (FTL, formerly Draft Week) as the project
 Free to play; prize pot funded by builder fees on trades routed through the app
   why:        entry-fee pools are zero-sum (losers fund winners) and read as gambling
   instead of: entry fees in STRIKE (rejected); referral revenue (rejected: only pays on new sign-ups)
+
+FPL-style budget squads instead of a snake draft (2026-10-22)
+  why:        user asked for Fantasy Premier League mechanics: 200 credits, traders priced 20-60 and graded
+              A+ to D, non-exclusive picks, bonus credits for the player's own 7-day Strike volume
+              ($1k +10, $10k +20, $50k +35, $250k +50 cap; the user bumped the first tiers as too small)
+  instead of: an 8-seat snake draft with exclusive picks (confusing, and friends could not share a star)
 
 Rank-based daily scoring (1..10 by decile, -5 liquidation, captain x1.5, auto-sub)
   why:        50% close games vs 13% for raw-return scoring on the week to 2026-10-21
