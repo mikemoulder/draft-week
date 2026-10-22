@@ -31,12 +31,15 @@ export const LeaderboardEntry = z.object({
   ada_handle: z.string().nullable().optional(),
   blockchain_address: z.string().nullable().optional(),
   vault_id: z.string().nullable().optional(),
+  avatar_url: z.string().nullable().optional(),
   equity: optNum,
+  volume: optNum,
   total_trades: num,
 });
 export type LeaderboardEntry = z.infer<typeof LeaderboardEntry>;
 
 const FillsPage = z.object({ fills: z.array(StrikeFill).nullable() });
+const AccountByAddress = z.object({ account_id: z.string(), blockchain: z.string(), blockchain_address: z.string() });
 const LeaderboardPage = z.object({ total: z.number(), entries: z.array(LeaderboardEntry) });
 
 export class StrikeError extends Error {
@@ -96,6 +99,28 @@ export function createStrikeClient(opts: StrikeClientOptions = {}) {
         offset: String(q.offset),
       });
       return get(`/stat/v1/stats/leaderboard?${params}`, LeaderboardPage);
+    },
+
+    /** The Strike account registered to a wallet address, or null when there is none (404). */
+    async accountByAddress(address: string) {
+      try {
+        return await get(`/v2/account?blockchain_address=${encodeURIComponent(address)}`, AccountByAddress);
+      } catch (err) {
+        if (err instanceof StrikeError && err.status === 404) return null;
+        throw err;
+      }
+    },
+
+    /** Leaderboard rows for specific accounts or addresses (volume, equity) over a window. */
+    async leaderboardFor(accountsOrAddresses: string[], timeRange: "7d" | "30d" = "7d") {
+      const params = new URLSearchParams({
+        time_range: timeRange,
+        platform: "strike",
+        addresses: accountsOrAddresses.join(","),
+        limit: String(accountsOrAddresses.length),
+        offset: "0",
+      });
+      return (await get(`/stat/v1/stats/leaderboard?${params}`, LeaderboardPage)).entries;
     },
 
     /** Newest first, older than fromId. For backfilling a time window. */

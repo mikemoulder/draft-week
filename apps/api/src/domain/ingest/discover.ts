@@ -17,6 +17,14 @@ export function displayName(e: LeaderboardEntry): string {
   return `trader-${e.account_id.slice(0, 8)}`;
 }
 
+/** Strike serves avatars as host/path without a scheme. Only its own image host is accepted. */
+export function avatarUrlOf(raw: string | null | undefined): string | null {
+  const v = raw?.trim();
+  if (!v) return null;
+  const url = v.startsWith("http") ? v : `https://${v}`;
+  return /^https:\/\/prod-images\.strikefinance\.org\/[\w-]+$/.test(url) ? url : null;
+}
+
 export function isDraftable(e: LeaderboardEntry): boolean {
   return !e.account_id.startsWith("vault_") && !e.vault_id && e.total_trades > 0 && e.total_trades <= MAX_TRADES_30D;
 }
@@ -42,6 +50,7 @@ export async function discoverTraders(db: Db, strike: StrikeClient, now: Date): 
         adaHandle: e.ada_handle || null,
         nickname: e.nickname || null,
         blockchainAddress: e.blockchain_address || null,
+        avatarUrl: avatarUrlOf(e.avatar_url),
         updatedAt: now,
       })),
     )
@@ -52,6 +61,7 @@ export async function discoverTraders(db: Db, strike: StrikeClient, now: Date): 
         adaHandle: sql`excluded.ada_handle`,
         nickname: sql`excluded.nickname`,
         blockchainAddress: sql`excluded.blockchain_address`,
+        avatarUrl: sql`excluded.avatar_url`,
         updatedAt: sql`excluded.updated_at`,
       },
     });

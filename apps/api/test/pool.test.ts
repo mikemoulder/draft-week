@@ -88,9 +88,7 @@ describe.skipIf(!url)("draft pool", () => {
 
   it("lists playable weeks with their status and pool size", async () => {
     const weeks = await playableWeeks(db, new Date("2026-10-21T12:00:00Z"));
-    expect(weeks).toEqual([
-      expect.objectContaining({ id: "2026-10-12", status: "final", draftable: 2 }),
-      expect.objectContaining({ id: "2026-10-19", status: "live", draftable: 1 }),
-    ]);
+    // the week in progress (2026-10-19) is never offered: its first days are already known
+    expect(weeks).toEqual([expect.objectContaining({ id: "2026-10-12", status: "final", draftable: 2 })]);
   });
 });

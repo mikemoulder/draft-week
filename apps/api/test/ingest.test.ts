@@ -34,6 +34,12 @@ function fakeStrike(): FakeStrike {
         .sort((a, b) => b.id - a.id)
         .slice(0, q.limit ?? 1000);
     },
+    async accountByAddress() {
+      return null;
+    },
+    async leaderboardFor() {
+      return [];
+    },
     async fillsSince(id, since, limit = 1000) {
       return of(id)
         .filter((f) => f.trade_id > since)
@@ -73,6 +79,7 @@ const entry = (account_id: string, total_trades: number, extra: Partial<Leaderbo
   blockchain_address: null,
   vault_id: null,
   equity: 1000,
+  volume: null,
   total_trades,
   ...extra,
 });

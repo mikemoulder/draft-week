@@ -1,5 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
-import type { CardTier, PoolTrader, TraderStyle, WeekInfo, WeekStatus } from "@draftweek/shared";
+import type { CardTier, Grade, PoolTrader, TraderStyle, WeekInfo, WeekStatus } from "@draftweek/shared";
 import type { Db } from "../../db/client.js";
 import { traderDays, traders } from "../../db/schema.js";
 import { addWeeks, weekBounds, weekIdOf } from "../scoring/weeks.js";
@@ -11,6 +11,8 @@ export const POOL_MAX_TRADES = 3000;
 export type PrevWeek = {
   accountId: string;
   name: string;
+  avatarUrl: string | null;
+  avgEquity: number;
   points: number;
   pnl: number;
   trades: number;
@@ -45,6 +47,8 @@ async function prevWeekStats(db: Db, weekId: string): Promise<PrevWeek[]> {
     .select({
       accountId: traderDays.accountId,
       name: traders.name,
+      avatarUrl: traders.avatarUrl,
+      avgEquity: sql<number>`avg(${traderDays.equityRef})::float8`,
       points: sql<number>`sum(${traderDays.points})::int`,
       pnl: sql<number>`sum(${traderDays.pnl})::float8`,
       trades: sql<number>`sum(${traderDays.trades})::int`,
@@ -57,7 +61,7 @@ async function prevWeekStats(db: Db, weekId: string): Promise<PrevWeek[]> {
     .from(traderDays)
     .innerJoin(traders, eq(traders.accountId, traderDays.accountId))
     .where(and(eq(traderDays.weekId, prev), eq(traders.optedOut, false)))
-    .groupBy(traderDays.accountId, traders.name)
+    .groupBy(traderDays.accountId, traders.name, traders.avatarUrl)
     .having(sql`sum(${traderDays.trades}) between ${POOL_MIN_TRADES} and ${POOL_MAX_TRADES}`);
   return rows as PrevWeek[];
 }
@@ -78,19 +82,44 @@ export function rateCards(points: number[]): { rating: number; tier: CardTier }[
   });
 }
 
-/** The draft pool for a league on weekId, ranked by last week's points. */
+// Fraction of the pool a value beats; ties share the lower rank.
+function percentiles(values: number[]): number[] {
+  const n = values.length;
+  const sorted = [...values].sort((a, b) => a - b);
+  return values.map((v) => (n > 1 ? sorted.findIndex((x) => x >= v) / (n - 1) : 1));
+}
+
+/** Price in credits, 20 to 60, from where last week's points rank. A squad of five averages 40. */
+export function priceCards(points: number[]): number[] {
+  return percentiles(points).map((pct) => 20 + Math.round(40 * pct));
+}
+
+/** Grade from last week's return: A+ top 10%, A next 20%, B next 30%, C next 25%, D bottom 15%. */
+export function gradeCards(returns: number[]): Grade[] {
+  return percentiles(returns).map((pct) => (pct >= 0.9 ? "A+" : pct >= 0.7 ? "A" : pct >= 0.4 ? "B" : pct >= 0.15 ? "C" : "D"));
+}
+
+const returnPct = (r: Pick<PrevWeek, "pnl" | "avgEquity">) => (100 * r.pnl) / Math.max(r.avgEquity, 100);
+
+/** The pool for a league on weekId, ranked by last week's points. */
 export async function draftPool(db: Db, weekId: string): Promise<PoolTrader[]> {
   const rows = await prevWeekStats(db, weekId);
   const ratings = rateCards(rows.map((r) => r.points));
+  const prices = priceCards(rows.map((r) => r.points));
+  const grades = gradeCards(rows.map(returnPct));
   return rows
     .map((r, i) => ({
       accountId: r.accountId,
       name: r.name,
       style: styleOf(r),
       ...(ratings[i] as { rating: number; tier: CardTier }),
+      grade: grades[i] as Grade,
+      price: prices[i] as number,
+      avatarUrl: r.avatarUrl,
       prevWeek: {
         points: r.points,
         pnl: Math.round(r.pnl * 100) / 100,
+        returnPct: Math.round(returnPct(r) * 10) / 10,
         trades: r.trades,
         activeDays: r.activeDays,
         winRate: r.closes > 0 ? Math.round((r.wins / r.closes) * 1000) / 10 : null,
@@ -100,10 +129,13 @@ export async function draftPool(db: Db, weekId: string): Promise<PoolTrader[]> {
     .sort((a, b) => b.prevWeek.points - a.prevWeek.points || a.accountId.localeCompare(b.accountId));
 }
 
-/** Weeks a league can be created for: recent finished weeks (replays), this week and next. */
+/**
+ * Weeks a league can be created for: the two most recent finished weeks (replays) and next week.
+ * Not the week in progress: its first days are already known, so squads would be picked with hindsight.
+ */
 export async function playableWeeks(db: Db, now: Date): Promise<WeekInfo[]> {
   const current = weekIdOf(now);
-  const candidates = [-2, -1, 0, 1].map((n) => addWeeks(current, n));
+  const candidates = [-2, -1, 1].map((n) => addWeeks(current, n));
   const rows = await db.execute<{ week_id: string; n: number }>(sql`
     select week_id, count(*)::int as n
     from (
