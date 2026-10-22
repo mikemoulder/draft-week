@@ -19,6 +19,9 @@ import { isNotNull } from "drizzle-orm";
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   displayName: text("display_name").notNull(),
+  // The Strike account behind the wallet the user signed in with, looked up at sign-in.
+  strikeAccountId: text("strike_account_id"),
+  strikeAddress: text("strike_address"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -70,6 +73,7 @@ export const traders = pgTable("traders", {
   adaHandle: text("ada_handle"),
   nickname: text("nickname"),
   blockchainAddress: text("blockchain_address"),
+  avatarUrl: text("avatar_url"),
   optedOut: boolean("opted_out").notNull().default(false),
   firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -157,8 +161,6 @@ export const leagues = pgTable("leagues", {
     .references(() => users.id, { onDelete: "cascade" }),
   inviteCode: text("invite_code").notNull().unique(),
   size: smallint("size").notNull().default(8),
-  draftStartedAt: timestamp("draft_started_at", { withTimezone: true }),
-  draftCompletedAt: timestamp("draft_completed_at", { withTimezone: true }),
   // Finished-week (replay) leagues reveal results only after the owner plays the week.
   playedAt: timestamp("played_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -174,6 +176,8 @@ export const leagueMembers = pgTable(
     userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }), // null = bot
     displayName: text("display_name").notNull(),
     seat: smallint("seat").notNull(),
+    // Extra credits from this manager's Strike volume, fixed when they joined.
+    budgetBonus: smallint("budget_bonus").notNull().default(0),
     joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -182,29 +186,14 @@ export const leagueMembers = pgTable(
   ],
 );
 
-export const picks = pgTable(
-  "picks",
-  {
-    leagueId: uuid("league_id")
-      .notNull()
-      .references(() => leagues.id, { onDelete: "cascade" }),
-    pickNo: smallint("pick_no").notNull(),
-    memberId: uuid("member_id")
-      .notNull()
-      .references(() => leagueMembers.id, { onDelete: "cascade" }),
-    accountId: text("account_id").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  // A trader can be drafted once per league, and each pick slot is filled once.
-  (t) => [primaryKey({ columns: [t.leagueId, t.pickNo] }), uniqueIndex("picks_trader_uq").on(t.leagueId, t.accountId)],
-);
-
-export const lineups = pgTable("lineups", {
+// One squad per manager per league. Traders are not exclusive: friends may pick the same trader.
+export const squads = pgTable("squads", {
   memberId: uuid("member_id")
     .primaryKey()
     .references(() => leagueMembers.id, { onDelete: "cascade" }),
   captainId: text("captain_id").notNull(),
   starters: text("starters").array().notNull(),
   bench: text("bench").array().notNull(),
+  spent: integer("spent").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

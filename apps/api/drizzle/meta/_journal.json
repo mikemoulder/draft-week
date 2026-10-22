@@ -22,6 +22,20 @@
       "when": 1792615068368,
       "tag": "0002_leagues",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792652922060,
+      "tag": "0003_drop_draft",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792652923790,
+      "tag": "0004_squads",
+      "breakpoints": true
     }
   ]
 }
