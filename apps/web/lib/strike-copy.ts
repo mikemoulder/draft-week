@@ -13,7 +13,8 @@ import type { Chain } from "@draftweek/shared";
 import type { ConnectedWallet } from "@/lib/wallets";
 
 const STRIKE = "https://api.strikefinance.org";
-export const BUILDER_CODE = process.env.NEXT_PUBLIC_FTL_BUILDER_CODE ?? "";
+/** FTL's registered builder code (case-sensitive). Public: Strike shows it in the wallet's consent message. */
+export const BUILDER_CODE = process.env.NEXT_PUBLIC_FTL_BUILDER_CODE || "FTL";
 /** FTL places no orders of its own, so it asks for no builder fee. */
 const FEE_SHARE_BPS = 0;
 
