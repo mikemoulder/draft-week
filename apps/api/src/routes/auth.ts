@@ -1,6 +1,6 @@
 import { Hono, type Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import { ChallengeRequest, VerifyRequest } from "@draftweek/shared";
+import { ChallengeRequest, StrikeAccountsRequest, VerifyRequest } from "@draftweek/shared";
 import type { AuthService } from "../domain/auth/service.js";
 import { SESSION_COOKIE, SESSION_TTL_MS } from "../domain/auth/sessions.js";
 import { body, type AppEnv } from "../http.js";
@@ -29,6 +29,12 @@ export function authRoutes(auth: AuthService, opts: { secureCookie: boolean }) {
     if (!result.ok) return c.json({ error: result.error }, result.status);
     startSession(c, result.value.token);
     return c.json(result.value.me);
+  });
+
+  // Public: which of a wallet's addresses already have a Strike account. Strike's own data is public.
+  r.post("/strike/accounts", body(StrikeAccountsRequest), async (c) => {
+    const { chain, addresses } = c.req.valid("json");
+    return c.json(await auth.strikeAccounts(chain, addresses));
   });
 
   r.post("/auth/guest", async (c) => {

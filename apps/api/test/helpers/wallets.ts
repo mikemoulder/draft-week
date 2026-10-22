@@ -3,7 +3,9 @@
 import { generateKeyPairSync, sign } from "node:crypto";
 import CSL from "@emurgo/cardano-serialization-lib-nodejs";
 import MS from "@emurgo/cardano-message-signing-nodejs";
-import { base58 } from "@scure/base";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
+import { base58, hex as hexCodec } from "@scure/base";
+import { eip191Hash, ethAddressOf } from "../../src/domain/auth/verify.js";
 
 const hex = (b: Uint8Array) => Buffer.from(b).toString("hex");
 
@@ -42,5 +44,21 @@ export function solanaWallet() {
   return {
     address: base58.encode(raw),
     signMessage: (message: string) => base58.encode(sign(null, Buffer.from(message, "utf8"), privateKey)),
+  };
+}
+
+/** An Ethereum wallet that signs like MetaMask/OKX personal_sign: 0x + r || s || v, v = 27 or 28. */
+export function ethereumWallet(secret?: Uint8Array) {
+  const sk = secret ?? secp256k1.utils.randomSecretKey();
+  const address = ethAddressOf(secp256k1.getPublicKey(sk, false));
+  return {
+    address,
+    signMessage(message: string) {
+      const sig = secp256k1.sign(eip191Hash(message), sk, { prehash: false, format: "recovered" });
+      const out = new Uint8Array(65);
+      out.set(sig.subarray(1), 0);
+      out[64] = (sig[0] as number) + 27;
+      return `0x${hexCodec.encode(out)}`;
+    },
   };
 }

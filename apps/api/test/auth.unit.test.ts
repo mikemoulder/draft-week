@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { normalizeAddress } from "../src/domain/auth/address.js";
 import { buildMessage } from "../src/domain/auth/message.js";
 import { verifySignature } from "../src/domain/auth/verify.js";
-import { cardanoWallet, solanaWallet } from "./helpers/wallets.js";
+import { cardanoWallet, ethereumWallet, solanaWallet } from "./helpers/wallets.js";
 
 describe("normalizeAddress", () => {
   const w = cardanoWallet();
@@ -74,6 +74,22 @@ describe("verifySignature", () => {
     const signature = s.signMessage(message);
     expect(verifySignature("solana", { address: s.address, message, signature })).toBe(true);
     expect(verifySignature("solana", { address: solanaWallet().address, message, signature })).toBe(false);
+  });
+
+  it("derives the published address for private key 1", () => {
+    const one = new Uint8Array(32);
+    one[31] = 1;
+    expect(ethereumWallet(one).address).toBe("0x7e5f4552091a69125d5dfcb7b8c2659029395bdf");
+  });
+
+  it("accepts an Ethereum personal_sign signature and rejects tampering", () => {
+    const e = ethereumWallet();
+    const signature = e.signMessage(message);
+    expect(verifySignature("ethereum", { address: e.address, message, signature })).toBe(true);
+    expect(verifySignature("ethereum", { address: e.address.toUpperCase().replace("0X", "0x"), message, signature })).toBe(true);
+    expect(verifySignature("ethereum", { address: e.address, message: `${message}x`, signature })).toBe(false);
+    expect(verifySignature("ethereum", { address: ethereumWallet().address, message, signature })).toBe(false);
+    expect(verifySignature("ethereum", { address: e.address, message, signature: "0x1234" })).toBe(false);
   });
 
   it("treats malformed input as a failed sign-in, not a crash", () => {

@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { and, eq, gt, isNull, lt, sql } from "drizzle-orm";
 import type { Chain, ChallengeResponse, Me } from "@draftweek/shared";
 import type { Db } from "../../db/client.js";
+import type { StrikeClient } from "../../strike.js";
 import { authChallenges, sessions, users, wallets } from "../../db/schema.js";
 import { fail, ok, type Result } from "../result.js";
 import { normalizeAddress } from "./address.js";
@@ -13,7 +14,7 @@ const UNIQUE_VIOLATION = "23505";
 
 export type AuthService = ReturnType<typeof createAuthService>;
 
-export function createAuthService(db: Db, opts: { origin: string; now?: () => Date }) {
+export function createAuthService(db: Db, opts: { origin: string; now?: () => Date; strike?: Pick<StrikeClient, "accountByAddress"> }) {
   const now = opts.now ?? (() => new Date());
 
   async function loadMe(userId: string): Promise<Me | null> {
@@ -23,7 +24,12 @@ export function createAuthService(db: Db, opts: { origin: string; now?: () => Da
       .select({ chain: wallets.chain, address: wallets.address })
       .from(wallets)
       .where(eq(wallets.userId, userId));
-    return { id: user.id, displayName: user.displayName, wallets: owned };
+    return {
+      id: user.id,
+      displayName: user.displayName,
+      wallets: owned,
+      strike: user.strikeAccountId && user.strikeAddress ? { accountId: user.strikeAccountId, address: user.strikeAddress } : null,
+    };
   }
 
   async function findOrCreateUser(chain: Chain, address: string): Promise<string> {
@@ -42,6 +48,20 @@ export function createAuthService(db: Db, opts: { origin: string; now?: () => Da
       const [winner] = await db.select({ userId: wallets.userId }).from(wallets).where(eq(wallets.address, address));
       if (!winner) throw err;
       return winner.userId;
+    }
+  }
+
+  /** Remember which Strike account the wallet belongs to. A lookup failure leaves the link as it was. */
+  async function linkStrikeAccount(userId: string, address: string) {
+    if (!opts.strike) return;
+    try {
+      const account = await opts.strike.accountByAddress(address);
+      await db
+        .update(users)
+        .set({ strikeAccountId: account?.account_id ?? null, strikeAddress: account ? address : null })
+        .where(eq(users.id, userId));
+    } catch {
+      // Strike unreachable: sign-in still succeeds; the link is refreshed at the next sign-in.
     }
   }
 
@@ -80,6 +100,7 @@ export function createAuthService(db: Db, opts: { origin: string; now?: () => Da
       if (!valid) return fail(401, "the signature does not match this wallet");
 
       const userId = await findOrCreateUser(challenge.chain, challenge.address);
+      await linkStrikeAccount(userId, challenge.address);
       const token = newToken();
       await db.insert(sessions).values({
         id: hashToken(token),
@@ -100,7 +121,20 @@ export function createAuthService(db: Db, opts: { origin: string; now?: () => Da
       const userId = (user as { id: string }).id;
       const token = newToken();
       await db.insert(sessions).values({ id: hashToken(token), userId, expiresAt: new Date(now().getTime() + SESSION_TTL_MS) });
-      return { token, me: { id: userId, displayName: (await loadMe(userId))?.displayName ?? "Guest", wallets: [] } };
+      return { token, me: { id: userId, displayName: (await loadMe(userId))?.displayName ?? "Guest", wallets: [], strike: null } };
+    },
+
+    /** Which of these wallet addresses have a Strike account. Used before signing, to sign with that one. */
+    async strikeAccounts(chain: Chain, addresses: string[]) {
+      if (!opts.strike) return [];
+      const normalized = [...new Set(addresses.map((a) => normalizeAddress(chain, a)).flatMap((n) => (n.ok ? [n.address] : [])))];
+      const found = await Promise.all(
+        normalized.map(async (address) => {
+          const account = await opts.strike?.accountByAddress(address).catch(() => null);
+          return account ? { address, accountId: account.account_id, blockchain: account.blockchain } : null;
+        }),
+      );
+      return found.filter((a) => a !== null);
     },
 
     async userForToken(token: string): Promise<Me | null> {

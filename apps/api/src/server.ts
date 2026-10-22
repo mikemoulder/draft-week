@@ -7,9 +7,11 @@ import { lastSuccessfulIngest } from "./domain/ingest/run.js";
 import { createLeagueService } from "./domain/leagues/service.js";
 import { createShowcase } from "./domain/leagues/showcase.js";
 import { loadEnv } from "./env.js";
+import { createStrikeClient } from "./strike.js";
 
 const env = loadEnv();
 const { sql, db } = createDb(env.DATABASE_URL);
+const strike = createStrikeClient();
 
 const app = createApp({
   proxySecret: env.PROXY_SECRET,
@@ -23,10 +25,10 @@ const app = createApp({
     }
   },
   lastIngestAt: () => lastSuccessfulIngest(db),
-  auth: createAuthService(db, { origin: env.WEB_ORIGIN }),
+  auth: createAuthService(db, { origin: env.WEB_ORIGIN, strike }),
   secureCookie: env.WEB_ORIGIN.startsWith("https://"),
   db,
-  leagues: createLeagueService(db),
+  leagues: createLeagueService(db, { strike }),
   showcase: createShowcase(db),
 });
 

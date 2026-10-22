@@ -7,7 +7,7 @@ import type { ChallengeResponse, Me } from "@draftweek/shared";
 import { createApp } from "../src/app.js";
 import { createDb } from "../src/db/client.js";
 import { createAuthService } from "../src/domain/auth/service.js";
-import { cardanoWallet, solanaWallet } from "./helpers/wallets.js";
+import { cardanoWallet, ethereumWallet, solanaWallet } from "./helpers/wallets.js";
 
 const url = process.env.TEST_DATABASE_URL;
 const SECRET = "p".repeat(40);
@@ -125,11 +125,16 @@ describe.skipIf(!url)("sign-in flow", () => {
     expect(res.status).toBe(200);
   });
 
-  it("refuses chains that are not enabled and malformed bodies", async () => {
-    const eth = await call("/auth/challenge", {
-      json: { chain: "ethereum", address: "0xabc0000000000000000000000000000000000001" },
-    });
-    expect(eth.status).toBe(400);
+  it("signs in with an Ethereum wallet (OKX, MetaMask, Rabby)", async () => {
+    const e = ethereumWallet();
+    const ch = (await (await call("/auth/challenge", { json: { chain: "ethereum", address: e.address.toUpperCase().replace("0X", "0x") } })).json()) as ChallengeResponse;
+    expect(ch.message).toContain("with your Ethereum account");
+    const res = await call("/auth/verify", { json: { nonce: ch.nonce, signature: e.signMessage(ch.message) } });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as Me).wallets).toEqual([{ chain: "ethereum", address: e.address }]);
+  });
+
+  it("refuses unknown chains and malformed bodies", async () => {
     const junk = await call("/auth/challenge", { json: { chain: "dogecoin", address: "x" } });
     expect(junk.status).toBe(400);
     expect(((await junk.json()) as { error: string }).error).toMatch(/chain/);
