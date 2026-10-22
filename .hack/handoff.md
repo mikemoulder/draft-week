@@ -14,7 +14,7 @@ og:image + favicon, README for judges, demo video, make the repo public, submit 
 account yet" step, create league, pick a 5 trader squad within a budget (200 credits + Strike volume bonus up to
 +50) from a scrollable graded list with a pitch preview and a trader detail sheet, save and play the week, replay
 scoreboard, standings, all matchups.
-**Deployed:** web 79096e1 on Vercel, API 9fba5f8 on the VPS.
+**Deployed:** web e4b3726 on Vercel at https://strike-ftl.vercel.app (renamed from draft-week on 2026-10-22), API e4b3726 on the VPS (WEB_ORIGIN updated).
 **Game model:** FPL style. Traders priced 20-60 by last week's points percentile, graded A+ to D by return.
 Picks are not exclusive. 3 starters + 2 bench, captain x1.5, auto subs. Economics in docs/economics.md.
 **Design:** DESIGN.md v2, flat warm plum ground (no background gradients), Bricolage + Figtree, Phosphor icons,
