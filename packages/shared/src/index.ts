@@ -36,6 +36,8 @@ export const Me = z.object({
   id: z.string(),
   displayName: z.string(),
   wallets: z.array(Wallet),
+  // The Strike account behind the signed-in wallet, if it has one. Guests never do.
+  strike: z.object({ accountId: z.string(), address: z.string() }).nullable(),
 });
 export type Me = z.infer<typeof Me>;
 
@@ -47,6 +49,8 @@ export type TraderStyle = z.infer<typeof TraderStyle>;
 export const WeekStats = z.object({
   points: z.number(),
   pnl: z.number(),
+  // net pnl over average equity for the week, in percent: the profitability the grade is based on
+  returnPct: z.number(),
   trades: z.number(),
   activeDays: z.number(),
   winRate: z.number().nullable(),
@@ -57,22 +61,47 @@ export type WeekStats = z.infer<typeof WeekStats>;
 export const CardTier = z.enum(["legend", "gold", "silver", "bronze"]);
 export type CardTier = z.infer<typeof CardTier>;
 
-// Pool cards show the week BEFORE the league's week, so nobody drafts with hindsight.
-// rating (55 to 99) and tier come from where last week's points rank within this pool.
+export const Grade = z.enum(["A+", "A", "B", "C", "D"]);
+export type Grade = z.infer<typeof Grade>;
+
+// Everything on a card comes from the week BEFORE the league's week, so nobody picks with hindsight.
+// rating (55 to 99), tier and price come from where last week's points rank in the pool;
+// grade comes from last week's return.
 export const PoolTrader = z.object({
   accountId: z.string(),
   name: z.string(),
   style: TraderStyle,
   rating: z.number(),
   tier: CardTier,
+  grade: Grade,
+  price: z.number(),
+  avatarUrl: z.string().nullable(),
   prevWeek: WeekStats,
 });
 export type PoolTrader = z.infer<typeof PoolTrader>;
 
+export const TraderDay = z.object({ day: z.number(), points: z.number(), trades: z.number(), pnl: z.number(), liquidated: z.boolean() });
+export const TraderFill = z.object({
+  at: z.number(),
+  symbol: z.string(),
+  side: z.string(),
+  size: z.number(),
+  price: z.number(),
+  pnl: z.number(),
+  liquidation: z.boolean(),
+});
+// The detail panel for one trader: last week day by day, and their most recent trades.
+export const TraderDetail = z.object({
+  trader: PoolTrader,
+  days: z.array(TraderDay),
+  recentFills: z.array(TraderFill),
+});
+export type TraderDetail = z.infer<typeof TraderDetail>;
+
 export const WeekStatus = z.enum(["final", "live", "upcoming"]);
 export type WeekStatus = z.infer<typeof WeekStatus>;
 
-// A week can host a league when its previous week has data to draft from.
+// A week can host a league when its previous week has data to price traders from.
 export const WeekInfo = z.object({
   id: z.string(),
   status: WeekStatus,
@@ -82,12 +111,27 @@ export const WeekInfo = z.object({
 });
 export type WeekInfo = z.infer<typeof WeekInfo>;
 
+// ── Budget ──────────────────────────────────────────────────────────────────
+
+export const BASE_BUDGET = 200;
+export const SQUAD_SIZE = 5;
+// Extra credits from the manager's own Strike volume over the last 7 days. Highest tier reached wins.
+export const VOLUME_BONUS_TIERS = [
+  { minUsd: 250_000, credits: 50 },
+  { minUsd: 50_000, credits: 35 },
+  { minUsd: 10_000, credits: 20 },
+  { minUsd: 1_000, credits: 10 },
+] as const;
+
+export function volumeBonus(volumeUsd: number): number {
+  return VOLUME_BONUS_TIERS.find((t) => volumeUsd >= t.minUsd)?.credits ?? 0;
+}
+
 // ── Leagues ─────────────────────────────────────────────────────────────────
 
-// setup: joining open, draft not started. drafting: picks in progress. ready: drafted, lineups
-// editable, waiting for the week (or, for a finished week, for the owner to play it).
-// live: week in progress, lineups locked. final: results complete.
-export const LeagueStatus = z.enum(["setup", "drafting", "ready", "live", "final"]);
+// picking: squads can be built and changed. live: the week is running, squads locked.
+// final: results complete. A league on a finished week (replay) stays "picking" until its owner plays it.
+export const LeagueStatus = z.enum(["picking", "live", "final"]);
 export type LeagueStatus = z.infer<typeof LeagueStatus>;
 
 export const CreateLeagueRequest = z.object({
@@ -101,33 +145,27 @@ export const JoinLeagueRequest = z.object({
 });
 export type JoinLeagueRequest = z.infer<typeof JoinLeagueRequest>;
 
-export const PickRequest = z.object({ accountId: z.string() });
-export type PickRequest = z.infer<typeof PickRequest>;
-
-export const LineupRequest = z.object({
+// A squad is five traders: three starters, two on the bench, one starter as captain.
+export const SquadRequest = z.object({
   captainId: z.string(),
   starters: z.array(z.string()).length(3),
   bench: z.array(z.string()).length(2),
 });
-export type LineupRequest = z.infer<typeof LineupRequest>;
+export type SquadRequest = z.infer<typeof SquadRequest>;
+
+export const Squad = SquadRequest.extend({ memberId: z.string(), spent: z.number() });
+export type Squad = z.infer<typeof Squad>;
 
 export const Member = z.object({
   id: z.string(),
   name: z.string(),
   isBot: z.boolean(),
   seat: z.number(),
+  hasSquad: z.boolean(),
+  budget: z.number(), // base + this member's trading bonus
+  bonus: z.number(),
 });
 export type Member = z.infer<typeof Member>;
-
-export const Pick = z.object({
-  pickNo: z.number(),
-  memberId: z.string(),
-  accountId: z.string(),
-});
-export type Pick = z.infer<typeof Pick>;
-
-export const Lineup = LineupRequest.extend({ memberId: z.string() });
-export type Lineup = z.infer<typeof Lineup>;
 
 export const DayPoints = z.object({
   accountId: z.string(),
@@ -169,6 +207,7 @@ export const LeagueState = z.object({
   name: z.string(),
   weekId: z.string(),
   status: LeagueStatus,
+  replay: z.boolean(),
   inviteCode: z.string(),
   size: z.number(),
   ownerMemberId: z.string(),
@@ -176,15 +215,20 @@ export const LeagueState = z.object({
   // Days of the week whose results are visible: 7 when final, today's index + 1 when live, else 0.
   daysRevealed: z.number(),
   members: z.array(Member),
-  picks: z.array(Pick),
-  onTheClock: z.string().nullable(),
-  lineups: z.array(Lineup),
+  // Your own squad always; everyone's once the week is live or final.
+  squads: z.array(Squad),
   matchups: z.array(Matchup),
   standings: z.array(z.object({ memberId: z.string(), points: z.number() })),
   points: z.array(DayPoints),
-  traders: z.array(z.object({ accountId: z.string(), name: z.string() })),
+  traders: z.array(z.object({ accountId: z.string(), name: z.string(), style: TraderStyle, avatarUrl: z.string().nullable() })),
 });
 export type LeagueState = z.infer<typeof LeagueState>;
+
+// ── Strike accounts ─────────────────────────────────────────────────────────
+
+export const StrikeAccountsRequest = z.object({ chain: Chain, addresses: z.array(z.string().min(20).max(200)).min(1).max(20) });
+export const StrikeAccount = z.object({ address: z.string(), accountId: z.string(), blockchain: z.string() });
+export type StrikeAccount = z.infer<typeof StrikeAccount>;
 
 // ── Showcase (public, landing page) ────────────────────────────────────────
 
