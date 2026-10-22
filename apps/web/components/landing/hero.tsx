@@ -2,6 +2,7 @@ import { ArrowRight, PlayCircle } from "@phosphor-icons/react/dist/ssr";
 import type { PoolTrader } from "@draftweek/shared";
 import { TraderCard } from "@/components/cards/trader-card";
 import { Container } from "@/components/primitives";
+import Image from "next/image";
 import Link from "next/link";
 
 // A fanned hand: five real cards, rotated around a point below the hand like cards held in a fist.
@@ -19,9 +20,14 @@ export function Hero({ stars }: { stars: PoolTrader[] }) {
     <section className="floodlight overflow-hidden pb-16 pt-14 md:pb-24 md:pt-20">
       <Container className="grid items-center gap-14 lg:grid-cols-[1fr_1.05fr]">
         <div>
-          <p className="t-label inline-flex items-center gap-2 rounded-chip border border-line-strong px-3 py-1.5 text-fg-soft">
-            <span className="size-2 rounded-full bg-success" aria-hidden /> Fantasy Trading League for Strike Finance
-          </p>
+          <a
+            href="https://strikefinance.org"
+            target="_blank"
+            rel="noreferrer"
+            className="t-label inline-flex items-center gap-2 rounded-chip border border-line-strong py-1.5 pl-1.5 pr-3 text-fg-soft transition-colors hover:border-fg-mute hover:text-fg"
+          >
+            <Image src="/strike-logo.png" alt="" width={22} height={22} className="rounded-full" priority /> Powered by Strike
+          </a>
           <h1 className="t-display-xl mt-7 max-w-[10ch]">
             Five traders. <span className="text-action">Seven days.</span>
           </h1>
