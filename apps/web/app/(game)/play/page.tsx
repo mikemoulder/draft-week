@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LockKey } from "@phosphor-icons/react";
-import type { LeagueState, LeagueSummary, WeekInfo } from "@draftweek/shared";
+import { MAX_LEAGUE_SIZE, MIN_LEAGUE_SIZE, type LeagueState, type LeagueSummary, type WeekInfo } from "@draftweek/shared";
 import { Container, cx } from "@/components/primitives";
 import { useSession } from "@/components/session";
 import { ErrorState, toast } from "@/components/states";
@@ -30,6 +30,8 @@ function mondayOf(at: Date): string {
 function CreateLeague({ weeks, defaultName, onCancel }: { weeks: WeekInfo[]; defaultName: string; onCancel: () => void }) {
   const router = useRouter();
   const [name, setName] = useState(defaultName);
+  const [size, setSize] = useState(MIN_LEAGUE_SIZE);
+  const sizeOk = size >= MIN_LEAGUE_SIZE && size <= MAX_LEAGUE_SIZE && size % 2 === 0;
   const [weekId, setWeekId] = useState(weeks.find((w) => w.status === "final")?.id ?? weeks[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   // The week in progress is never playable (no hindsight picks), but it is listed so its absence makes sense.
@@ -40,7 +42,7 @@ function CreateLeague({ weeks, defaultName, onCancel }: { weeks: WeekInfo[]; def
     e.preventDefault();
     setBusy(true);
     try {
-      const league = await api.post<LeagueState>("/leagues", { name, weekId });
+      const league = await api.post<LeagueState>("/leagues", { name, weekId, size });
       toast.success("League created");
       router.push(`/leagues/${league.id}`);
     } catch (err) {
@@ -63,6 +65,28 @@ function CreateLeague({ weeks, defaultName, onCancel }: { weeks: WeekInfo[]; def
           required
           minLength={2}
         />
+      </label>
+      <label className="mt-6 block">
+        <span className="t-label">Seats</span>
+        <span className="mt-2 flex flex-wrap items-center gap-4">
+          <input
+            id="league-size"
+            type="number"
+            inputMode="numeric"
+            className="field-input t-num w-28"
+            value={Number.isFinite(size) ? size : ""}
+            min={MIN_LEAGUE_SIZE}
+            max={MAX_LEAGUE_SIZE}
+            step={2}
+            onChange={(e) => setSize(Number(e.target.value))}
+            required
+          />
+          <span className={cx("t-small", sizeOk ? "text-fg-mute" : "text-warning")}>
+            {sizeOk
+              ? `Up to ${size - 1} friends can join. Bots fill the empty seats at kick-off.`
+              : `An even number from ${MIN_LEAGUE_SIZE} to ${MAX_LEAGUE_SIZE}, so everyone has an opponent.`}
+          </span>
+        </span>
       </label>
       <fieldset className="mt-6">
         <legend className="t-label">Week</legend>
@@ -96,7 +120,7 @@ function CreateLeague({ weeks, defaultName, onCancel }: { weeks: WeekInfo[]; def
         </div>
       </fieldset>
       <div className="mt-6 flex flex-wrap gap-3">
-        <button type="submit" className="btn btn-action" disabled={busy || !weekId}>
+        <button type="submit" className="btn btn-action" disabled={busy || !weekId || !sizeOk}>
           {busy ? "Creating…" : "Create league"}
         </button>
         <button type="button" className="btn btn-text" onClick={onCancel}>
