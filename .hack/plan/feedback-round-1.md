@@ -1,5 +1,7 @@
 # Feedback round 1: manual test notes, 2026-10-23
 
+**Status: all items done and deployed (web c22def3, API 9494b41).** Verification is recorded in .hack/handoff.md.
+
 The user played the live site end to end and wrote ten notes. Each one maps to a work item below. Items are
 done in phase order; every item ends with its verification and a commit.
 

@@ -287,6 +287,14 @@ One site.
 - 2026-10-21: the product is named FTL, Fantasy Trading League (was the working name Draft Week). Wordmark: FTL in
   the display face, with "Fantasy Trading League" as a mono label beside it in the nav.
 
+- 2026-10-23: the FTL mark. A hand of three trader cards fanned on the action-orange tile (scalper sky and swing
+  mint either side, the middle card cream with an up arrow), drawn to read at 16 px. Used in the nav, favicon,
+  apple icon and the generated share image. The lettered badge is gone.
+- 2026-10-23: the motion set. Hero copy rises in and the hand is dealt from the middle out; cards lean toward a
+  fine pointer with a soft-light highlight; legend cards carry a slow foil sweep; a picked trader pops into the
+  pitch; landing sections reveal once; live numbers count up; game screens settle in on navigation. transform and
+  opacity only, nothing on touch for the tilt, and reduced motion gets the final state.
+
 ## 8. Critique log
 
 | Round | Date | Score /30 | Lowest dimensions | slop-check | Fixes made |
