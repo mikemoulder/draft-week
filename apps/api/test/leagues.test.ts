@@ -127,15 +127,28 @@ describe.skipIf(!url)("leagues", () => {
     expect(profile.favorites[0]).toMatchObject({ picks: 1 });
   });
 
-  it("runs a bigger league: 12 seats, bots fill them, 6 matchups", async () => {
-    let s = must(await leagues.create(alice, { name: "Big", weekId: "2026-10-12", size: 12 }));
-    expect(s.size).toBe(12);
-    must(await leagues.setSquad(alice, s.id, cheapSquad()));
-    s = must(await leagues.play(alice, s.id));
-    expect(s.members).toHaveLength(12);
-    expect(new Set(s.members.map((m) => m.name)).size).toBe(12);
-    expect(s.matchups).toHaveLength(6);
-    expect(s.standings).toHaveLength(12);
+  it("adds bots only to make up the numbers, however big the league", async () => {
+    // One manager in a 12-seat league: bots bring it to the minimum of 8, not to 12.
+    let small = must(await leagues.create(alice, { name: "Small", weekId: "2026-10-12", size: 12 }));
+    expect(small.size).toBe(12);
+    must(await leagues.setSquad(alice, small.id, cheapSquad()));
+    small = must(await leagues.play(alice, small.id));
+    expect(small.members).toHaveLength(8);
+    expect(small.matchups).toHaveLength(4);
+
+    // Eleven managers in a 500-seat event: one bot, so everyone has an opponent.
+    let event = must(await leagues.create(alice, { name: "Event", weekId: "2026-10-12", size: 500 }));
+    const extra = await db
+      .insert(users)
+      .values(Array.from({ length: 10 }, (_, i) => ({ displayName: `player ${i}` })))
+      .returning();
+    for (const u of extra) must(await leagues.join({ userId: u.id, displayName: u.displayName }, event.inviteCode));
+    must(await leagues.setSquad(alice, event.id, cheapSquad()));
+    event = must(await leagues.play(alice, event.id));
+    expect(event.members.filter((m) => !m.isBot)).toHaveLength(11);
+    expect(event.members).toHaveLength(12);
+    expect(event.matchups).toHaveLength(6);
+    expect(event.squads).toHaveLength(12); // managers who never picked get a squad picked for them
   });
 
   it("enforces the budget, the captain rule and this week's list", async () => {
@@ -254,11 +267,10 @@ describe.skipIf(!url)("leagues", () => {
     const seen = (await (await app.request(`/leagues/${id}`, { headers: owner })).json()) as LeagueState;
     expect(seen.members).toHaveLength(2);
     expect((await app.request("/leagues/not-a-uuid", { headers: owner })).status).toBe(404);
-    for (const size of [9, 6, 22]) {
-      const r = await app.request("/leagues", { method: "POST", headers: owner, body: JSON.stringify({ name: "Odd", weekId: "2026-10-26", size }) });
-      expect(r.status).toBe(400);
-    }
-    const odd = await app.request("/leagues", { method: "POST", headers: owner, body: JSON.stringify({ name: "Odd", weekId: "2026-10-26", size: 9 }) });
-    expect(((await odd.json()) as { error: string }).error).toMatch(/even/);
+    const sized = (size: number) => app.request("/leagues", { method: "POST", headers: owner, body: JSON.stringify({ name: "Sized", weekId: "2026-10-26", size }) });
+    expect((await sized(9)).status).toBe(200);
+    expect((await sized(500)).status).toBe(200);
+    for (const size of [6, 501]) expect((await sized(size)).status).toBe(400);
+    expect(((await (await sized(501)).json()) as { error: string }).error).toMatch(/at most 500/);
   });
 });

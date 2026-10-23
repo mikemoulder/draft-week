@@ -135,9 +135,15 @@ export function volumeBonus(volumeUsd: number): number {
 export const LeagueStatus = z.enum(["picking", "live", "final"]);
 export type LeagueStatus = z.infer<typeof LeagueStatus>;
 
-// League size: seats for managers and bots. Even, so every seat has a head-to-head opponent.
+// League size: the most managers who can join. At kick-off bots only make up the numbers, to at least
+// MIN_LEAGUE_SIZE players and an even count, so big event leagues stay all human.
 export const MIN_LEAGUE_SIZE = 8;
-export const MAX_LEAGUE_SIZE = 20;
+export const MAX_LEAGUE_SIZE = 500;
+
+/** Players once the league kicks off: the managers, plus bots up to MIN_LEAGUE_SIZE and an even number. */
+export function kickoffSize(managers: number): number {
+  return Math.max(MIN_LEAGUE_SIZE, managers + (managers % 2));
+}
 
 export const CreateLeagueRequest = z.object({
   name: z.string().trim().min(2).max(40),
@@ -145,9 +151,8 @@ export const CreateLeagueRequest = z.object({
   size: z
     .number()
     .int()
-    .min(MIN_LEAGUE_SIZE, `a league has at least ${MIN_LEAGUE_SIZE} seats`)
-    .max(MAX_LEAGUE_SIZE, `a league has at most ${MAX_LEAGUE_SIZE} seats`)
-    .refine((n) => n % 2 === 0, "league size must be even, so everyone has an opponent")
+    .min(MIN_LEAGUE_SIZE, `a league takes at least ${MIN_LEAGUE_SIZE} managers`)
+    .max(MAX_LEAGUE_SIZE, `a league takes at most ${MAX_LEAGUE_SIZE} managers`)
     .optional(),
 });
 export type CreateLeagueRequest = z.infer<typeof CreateLeagueRequest>;

@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { and, asc, eq, inArray, lt } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt } from "drizzle-orm";
 import {
   BASE_BUDGET,
   volumeBonus,
@@ -19,6 +19,7 @@ import { fail, ok, type Result } from "../result.js";
 import { draftPool, playableWeeks } from "../traders/pool.js";
 import {
   botNames,
+  kickoffSize,
   LEAGUE_SIZE,
   autoSquad,
   daysRevealed,
@@ -77,7 +78,8 @@ export function createLeagueService(db: Db, opts: { now?: () => Date; strike?: P
     const members = await membersOf(tx, league.id);
     const usedNames = new Set(members.map((m) => m.displayName));
     const names = botNames(league.id).filter((n) => !usedNames.has(n));
-    for (let seat = 0; seat < league.size; seat++) {
+    const target = kickoffSize(members.filter((m) => m.userId !== null).length);
+    for (let seat = 0; members.length < target; seat++) {
       if (members.some((m) => m.seat === seat)) continue;
       const [bot] = await tx
         .insert(leagueMembers)
@@ -94,6 +96,7 @@ export function createLeagueService(db: Db, opts: { now?: () => Date; strike?: P
       const squad = autoSquad(pool, BASE_BUDGET + m.budgetBonus, `${league.id}:${m.id}`);
       if (squad) await tx.insert(squads).values({ memberId: m.id, ...squad, spent: squadCost(squad, prices) }).onConflictDoNothing();
     }
+    await tx.update(leagues).set({ playedAt: now() }).where(and(eq(leagues.id, league.id), isNull(leagues.playedAt)));
   }
 
   async function state(leagueId: string, viewer: Viewer): Promise<Result<LeagueState>> {
@@ -105,8 +108,8 @@ export function createLeagueService(db: Db, opts: { now?: () => Date; strike?: P
 
     const at = now();
     const status = leagueStatus(league, at);
-    // A calendar league that has kicked off fills its seats and squads on first read.
-    if (status !== "picking" && members.length < league.size) {
+    // A calendar league that has kicked off fills its seats and squads on first read, once.
+    if (status !== "picking" && !league.playedAt) {
       const pool = await draftPool(db, league.weekId);
       await db.transaction(async (tx) => {
         const locked = (await loadLeague(tx, leagueId, true)) as League;

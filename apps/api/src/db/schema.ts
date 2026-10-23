@@ -162,6 +162,7 @@ export const leagues = pgTable("leagues", {
   inviteCode: text("invite_code").notNull().unique(),
   size: smallint("size").notNull().default(8),
   // Finished-week (replay) leagues reveal results only after the owner plays the week.
+  // When the league kicked off: bots seated and missing squads picked. A replay league also counts as played then.
   playedAt: timestamp("played_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

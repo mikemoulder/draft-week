@@ -1,7 +1,7 @@
 // Pure league rules. No database access here, so every rule is unit tested directly.
-import { MIN_LEAGUE_SIZE, pairings, type LeagueStatus, type Matchup, type PoolTrader, type ReplayEvent } from "@draftweek/shared";
+import { MIN_LEAGUE_SIZE, kickoffSize, pairings, type LeagueStatus, type Matchup, type PoolTrader, type ReplayEvent } from "@draftweek/shared";
 
-export { pairings };
+export { kickoffSize, pairings };
 import { DAY_MS, weekBounds } from "../scoring/weeks.js";
 
 export const ROSTER_SIZE = 5;
