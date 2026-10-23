@@ -135,9 +135,20 @@ export function volumeBonus(volumeUsd: number): number {
 export const LeagueStatus = z.enum(["picking", "live", "final"]);
 export type LeagueStatus = z.infer<typeof LeagueStatus>;
 
+// League size: seats for managers and bots. Even, so every seat has a head-to-head opponent.
+export const MIN_LEAGUE_SIZE = 8;
+export const MAX_LEAGUE_SIZE = 20;
+
 export const CreateLeagueRequest = z.object({
   name: z.string().trim().min(2).max(40),
   weekId: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  size: z
+    .number()
+    .int()
+    .min(MIN_LEAGUE_SIZE, `a league has at least ${MIN_LEAGUE_SIZE} seats`)
+    .max(MAX_LEAGUE_SIZE, `a league has at most ${MAX_LEAGUE_SIZE} seats`)
+    .refine((n) => n % 2 === 0, "league size must be even, so everyone has an opponent")
+    .optional(),
 });
 export type CreateLeagueRequest = z.infer<typeof CreateLeagueRequest>;
 

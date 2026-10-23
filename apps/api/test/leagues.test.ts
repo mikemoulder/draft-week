@@ -127,6 +127,17 @@ describe.skipIf(!url)("leagues", () => {
     expect(profile.favorites[0]).toMatchObject({ picks: 1 });
   });
 
+  it("runs a bigger league: 12 seats, bots fill them, 6 matchups", async () => {
+    let s = must(await leagues.create(alice, { name: "Big", weekId: "2026-10-12", size: 12 }));
+    expect(s.size).toBe(12);
+    must(await leagues.setSquad(alice, s.id, cheapSquad()));
+    s = must(await leagues.play(alice, s.id));
+    expect(s.members).toHaveLength(12);
+    expect(new Set(s.members.map((m) => m.name)).size).toBe(12);
+    expect(s.matchups).toHaveLength(6);
+    expect(s.standings).toHaveLength(12);
+  });
+
   it("enforces the budget, the captain rule and this week's list", async () => {
     const s = must(await leagues.create(bob, { name: "Rules", weekId: "2026-10-12" }));
     expect(s.members[0]).toMatchObject({ budget: 200, bonus: 0 }); // bob has no Strike account
@@ -243,5 +254,11 @@ describe.skipIf(!url)("leagues", () => {
     const seen = (await (await app.request(`/leagues/${id}`, { headers: owner })).json()) as LeagueState;
     expect(seen.members).toHaveLength(2);
     expect((await app.request("/leagues/not-a-uuid", { headers: owner })).status).toBe(404);
+    for (const size of [9, 6, 22]) {
+      const r = await app.request("/leagues", { method: "POST", headers: owner, body: JSON.stringify({ name: "Odd", weekId: "2026-10-26", size }) });
+      expect(r.status).toBe(400);
+    }
+    const odd = await app.request("/leagues", { method: "POST", headers: owner, body: JSON.stringify({ name: "Odd", weekId: "2026-10-26", size: 9 }) });
+    expect(((await odd.json()) as { error: string }).error).toMatch(/even/);
   });
 });

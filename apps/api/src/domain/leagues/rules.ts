@@ -1,5 +1,5 @@
 // Pure league rules. No database access here, so every rule is unit tested directly.
-import { pairings, type LeagueStatus, type Matchup, type PoolTrader, type ReplayEvent } from "@draftweek/shared";
+import { MIN_LEAGUE_SIZE, pairings, type LeagueStatus, type Matchup, type PoolTrader, type ReplayEvent } from "@draftweek/shared";
 
 export { pairings };
 import { DAY_MS, weekBounds } from "../scoring/weeks.js";
@@ -8,7 +8,7 @@ export const ROSTER_SIZE = 5;
 export const STARTERS = 3;
 export const BENCH = ROSTER_SIZE - STARTERS;
 export const CAPTAIN_MULTIPLIER = 1.5;
-export const LEAGUE_SIZE = 8;
+export const LEAGUE_SIZE = MIN_LEAGUE_SIZE;
 
 // Bots get ordinary first names; the robot icon beside them already says they are bots.
 export const BOT_NAMES = [

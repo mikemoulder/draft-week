@@ -180,7 +180,7 @@ export function createLeagueService(db: Db, opts: { now?: () => Date; strike?: P
   return {
     state,
 
-    async create(viewer: Viewer, input: { name: string; weekId: string }): Promise<Result<LeagueState>> {
+    async create(viewer: Viewer, input: { name: string; weekId: string; size?: number }): Promise<Result<LeagueState>> {
       const weeks = await playableWeeks(db, now());
       if (!weeks.some((w) => w.id === input.weekId)) return fail(400, "that week cannot host a league");
       const bonus = await bonusFor(viewer.userId);
@@ -189,7 +189,7 @@ export function createLeagueService(db: Db, opts: { now?: () => Date; strike?: P
           const id = await db.transaction(async (tx) => {
             const [league] = await tx
               .insert(leagues)
-              .values({ weekId: input.weekId, name: input.name, ownerId: viewer.userId, inviteCode: inviteCode(), size: LEAGUE_SIZE, createdAt: now() })
+              .values({ weekId: input.weekId, name: input.name, ownerId: viewer.userId, inviteCode: inviteCode(), size: input.size ?? LEAGUE_SIZE, createdAt: now() })
               .returning({ id: leagues.id });
             const leagueId = (league as { id: string }).id;
             await tx.insert(leagueMembers).values({ leagueId, userId: viewer.userId, displayName: viewer.displayName, seat: 0, budgetBonus: bonus });
