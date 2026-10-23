@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CaretRight, CheckCircle, Crown, HourglassMedium, Robot, UserCircle, UsersThree, X } from "@phosphor-icons/react";
-import type { LeagueState } from "@draftweek/shared";
+import { MIN_LEAGUE_SIZE, type LeagueState } from "@draftweek/shared";
 import { cx } from "@/components/primitives";
 import { pts } from "@/lib/format";
 import { CopyCode } from "./copy-code";
@@ -59,7 +59,8 @@ function MembersSheet({ league, onClose }: { league: LeagueState; onClose: () =>
           <div className="min-w-0 flex-1">
             <p className="t-display-m">Who&apos;s in</p>
             <p className="t-small mt-1 text-fg-mute">
-              {humans} {humans === 1 ? "manager" : "managers"} · {league.size} seats
+              {humans} {humans === 1 ? "manager" : "managers"}
+              {picking ? ` · up to ${league.size}` : ""}
               {picking ? ` · ${picked} ${picked === 1 ? "squad" : "squads"} picked` : ""}
             </p>
           </div>
@@ -121,7 +122,8 @@ function MembersSheet({ league, onClose }: { league: LeagueState; onClose: () =>
                 <Robot size={18} weight="duotone" aria-hidden />
               </span>
               <span className="t-small">
-                {open} open seat{open === 1 ? "" : "s"}. Friends can take them with the invite code; bots fill the rest at kick-off.
+                {open} more {open === 1 ? "manager" : "managers"} can join with the invite code. At kick-off, bots only make up the numbers: at least{" "}
+                {MIN_LEAGUE_SIZE} players, and an even count so everyone has an opponent.
               </span>
             </li>
           ) : null}

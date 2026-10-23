@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 const WEEK = [
-  { icon: Users, title: "Start or join a league", body: "8 to 20 seats, set by whoever starts it. Invite friends with a code; bots fill any seat left empty." },
+  { icon: Users, title: "Start or join a league", body: "8 to 500 managers, set by whoever starts it. Invite people with a code; bots only make up the numbers." },
   { icon: Coins, title: "Pick five traders", body: `Spend up to ${BASE_BUDGET} credits, plus a bonus for your own trading on Strike.` },
   { icon: LockKey, title: "Squads lock at kick-off", body: "Monday 00:00 UTC. No changes once the week starts." },
   { icon: Ranking, title: "Seven days of points", body: "Every day your traders trade on Strike, they score for you." },
@@ -224,8 +224,9 @@ export default function HowItWorks() {
               <p className="t-body flex gap-3 text-fg-soft">
                 <Sword size={22} weight="duotone" className="mt-0.5 shrink-0 text-action" aria-hidden />
                 <span>
-                  Every manager has one head-to-head matchup for the week. Managers play each other first, in the order they joined the league:
-                  1st v 2nd, 3rd v 4th. Bots fill the empty seats, so an odd manager out plays a bot, and the remaining bots play each other.
+                  Every manager has one head-to-head matchup for the week. Managers play each other in the order they joined the league: 1st v
+                  2nd, 3rd v 4th. Bots only make up the numbers: a league with fewer than 8 managers gets bots up to 8, and an odd number of
+                  managers gets one bot so the last one has an opponent. An event with 120 managers plays as 120 people.
                 </span>
               </p>
               <p className="t-body flex gap-3 text-fg-soft">

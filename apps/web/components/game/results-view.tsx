@@ -17,12 +17,22 @@ export function ResultsView({ league }: { league: LeagueState }) {
   const name = (id: string) => league.members.find((m) => m.id === id)?.name ?? "";
   const bot = (id: string) => league.members.find((m) => m.id === id)?.isBot ?? false;
   const days = league.daysRevealed;
+  const [allStandings, setAllStandings] = useState(false);
+  const [allMatchups, setAllMatchups] = useState(false);
 
   if (!mine) return null;
   const isMine = (m: typeof mine) => m.a === league.myMemberId || m.b === league.myMemberId;
   const opponent = (m: typeof mine) => name(m.a === league.myMemberId ? m.b : m.a);
   const current = league.matchups.find((m) => m.id === viewing) ?? mine;
   const label = (id: string) => (id === league.myMemberId ? "You" : name(id));
+  // Big event leagues: the top of the table plus your own row, and your matchup plus a few others, until asked.
+  const TOP = 10;
+  const myRank = league.standings.findIndex((x) => x.memberId === league.myMemberId);
+  const table = allStandings || league.standings.length <= TOP + 2 ? league.standings.map((x, i) => [x, i] as const) : [
+    ...league.standings.slice(0, TOP).map((x, i) => [x, i] as const),
+    ...(myRank >= TOP ? [[league.standings[myRank]!, myRank] as const] : []),
+  ];
+  const fixtures = allMatchups || league.matchups.length <= TOP ? league.matchups : [mine, ...league.matchups.filter((m) => m.id !== mine.id).slice(0, TOP - 1)];
   return (
     <div className="flex flex-col gap-10 py-8">
       {league.myMemberId && BUILDER_CODE ? (
@@ -62,8 +72,15 @@ export function ResultsView({ league }: { league: LeagueState }) {
         <section aria-label="Standings" className="rounded-panel bg-tile p-6">
           <h2 className="t-display-m mb-4">Standings</h2>
           <ol className="flex flex-col">
-            {league.standings.map((s, i) => (
-              <li key={s.memberId} className={cx("flex items-center gap-3 border-b border-line py-3 last:border-0", s.memberId === league.myMemberId && "text-accent")}>
+            {table.map(([s, i]) => (
+              <li
+                key={s.memberId}
+                className={cx(
+                  "flex items-center gap-3 border-b border-line py-3 last:border-0",
+                  s.memberId === league.myMemberId && "text-accent",
+                  !allStandings && i === myRank && myRank >= TOP && "border-t-2 border-dashed",
+                )}
+              >
                 <span className="t-num w-6 text-[18px] text-fg-mute">{i + 1}</span>
                 {bot(s.memberId) ? <Robot size={20} weight="duotone" className="text-fg-mute" aria-hidden /> : <UserCircle size={20} weight="duotone" className="text-fg-mute" aria-hidden />}
                 <span className="t-body min-w-0 flex-1 truncate font-semibold">{s.memberId === league.myMemberId ? "You" : name(s.memberId)}</span>
@@ -80,12 +97,17 @@ export function ResultsView({ league }: { league: LeagueState }) {
               </li>
             ))}
           </ol>
+          {league.standings.length > table.length || allStandings ? (
+            <button type="button" className="t-small mt-3 font-semibold text-action hover:underline" onClick={() => setAllStandings((v) => !v)}>
+              {allStandings ? "Show the top only" : `Show all ${league.standings.length}`}
+            </button>
+          ) : null}
         </section>
         <section aria-label="Matchups">
           <h2 className="t-label">All matchups</h2>
           <p className="t-small mb-3 mt-1 text-fg-mute">{MATCHUP_RULE}</p>
           <ul className="grid gap-2 sm:grid-cols-2">
-            {league.matchups.map((m) => {
+            {fixtures.map((m) => {
               const [a, b] = totals(m, days);
               return (
                 <li key={m.id}>
@@ -104,6 +126,11 @@ export function ResultsView({ league }: { league: LeagueState }) {
               );
             })}
           </ul>
+          {league.matchups.length > fixtures.length || allMatchups ? (
+            <button type="button" className="t-small mt-3 font-semibold text-action hover:underline" onClick={() => setAllMatchups((v) => !v)}>
+              {allMatchups ? "Show fewer" : `Show all ${league.matchups.length} matchups`}
+            </button>
+          ) : null}
         </section>
       </aside>
     </div>

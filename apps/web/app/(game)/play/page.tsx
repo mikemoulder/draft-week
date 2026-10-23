@@ -31,7 +31,7 @@ function CreateLeague({ weeks, defaultName, onCancel }: { weeks: WeekInfo[]; def
   const router = useRouter();
   const [name, setName] = useState(defaultName);
   const [size, setSize] = useState(MIN_LEAGUE_SIZE);
-  const sizeOk = size >= MIN_LEAGUE_SIZE && size <= MAX_LEAGUE_SIZE && size % 2 === 0;
+  const sizeOk = Number.isInteger(size) && size >= MIN_LEAGUE_SIZE && size <= MAX_LEAGUE_SIZE;
   const [weekId, setWeekId] = useState(weeks.find((w) => w.status === "final")?.id ?? weeks[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   // The week in progress is never playable (no hindsight picks), but it is listed so its absence makes sense.
@@ -67,7 +67,7 @@ function CreateLeague({ weeks, defaultName, onCancel }: { weeks: WeekInfo[]; def
         />
       </label>
       <label className="mt-6 block">
-        <span className="t-label">Seats</span>
+        <span className="t-label">Max managers</span>
         <span className="mt-2 flex flex-wrap items-center gap-4">
           <input
             id="league-size"
@@ -77,14 +77,14 @@ function CreateLeague({ weeks, defaultName, onCancel }: { weeks: WeekInfo[]; def
             value={Number.isFinite(size) ? size : ""}
             min={MIN_LEAGUE_SIZE}
             max={MAX_LEAGUE_SIZE}
-            step={2}
+            step={1}
             onChange={(e) => setSize(Number(e.target.value))}
             required
           />
           <span className={cx("t-small", sizeOk ? "text-fg-mute" : "text-warning")}>
             {sizeOk
-              ? `Up to ${size - 1} friends can join. Bots fill the empty seats at kick-off.`
-              : `An even number from ${MIN_LEAGUE_SIZE} to ${MAX_LEAGUE_SIZE}, so everyone has an opponent.`}
+              ? `Up to ${size - 1} ${size - 1 === 1 ? "friend" : "friends"} can join. If fewer than ${MIN_LEAGUE_SIZE} play, bots make up the numbers.`
+              : `A number from ${MIN_LEAGUE_SIZE} to ${MAX_LEAGUE_SIZE}. Raise it for an event.`}
           </span>
         </span>
       </label>
