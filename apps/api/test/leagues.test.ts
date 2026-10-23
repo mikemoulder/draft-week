@@ -197,4 +197,31 @@ describe.skipIf(!url)("leagues", () => {
     const [bobRow] = await db.select().from(users).where(eq(users.displayName, "bob"));
     expect(bobRow?.strikeAccountId).toBeNull();
   });
+
+  it("joins a friend's league by invite code over HTTP", async () => {
+    const app = createApp({
+      proxySecret: "s".repeat(40),
+      version: "test",
+      pingDb: async () => true,
+      lastIngestAt: async () => null,
+      auth: createAuthService(db, { origin: "https://strike-ftl.vercel.app" }),
+      db,
+      leagues,
+    });
+    const guest = async () => {
+      const res = await app.request("/auth/guest", { method: "POST", headers: { "x-proxy-secret": "s".repeat(40) } });
+      return { "x-proxy-secret": "s".repeat(40), "content-type": "application/json", cookie: (res.headers.get("set-cookie") ?? "").split(";")[0]! };
+    };
+    const [owner, friend] = [await guest(), await guest()];
+    const created = await app.request("/leagues", { method: "POST", headers: owner, body: JSON.stringify({ name: "Group chat", weekId: "2026-10-26" }) });
+    expect(created.status).toBe(200);
+    const { id, inviteCode } = (await created.json()) as LeagueState;
+
+    const joined = await app.request("/leagues/join", { method: "POST", headers: friend, body: JSON.stringify({ inviteCode: inviteCode.toLowerCase() }) });
+    expect(joined.status).toBe(200);
+    expect(((await joined.json()) as LeagueState).id).toBe(id);
+    const seen = (await (await app.request(`/leagues/${id}`, { headers: owner })).json()) as LeagueState;
+    expect(seen.members).toHaveLength(2);
+    expect((await app.request("/leagues/not-a-uuid", { headers: owner })).status).toBe(404);
+  });
 });

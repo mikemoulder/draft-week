@@ -1,4 +1,4 @@
-import { Hono, type Context } from "hono";
+import { Hono, type Context, type MiddlewareHandler } from "hono";
 import { CreateLeagueRequest, JoinLeagueRequest, SquadRequest } from "@draftweek/shared";
 import type { LeagueService, Viewer } from "../domain/leagues/service.js";
 import type { Result } from "../domain/result.js";
@@ -16,18 +16,16 @@ export function leagueRoutes(leagues: LeagueService) {
   const r = new Hono<AppEnv>();
   r.use("/leagues", requireMe);
   r.use("/leagues/*", requireMe);
-  r.use("/leagues/:id/*", async (c, next) => (isUuid(c.req.param("id") ?? "") ? next() : c.json({ error: "league not found" }, 404)));
+  // Only the routes that take a league id. A wildcard here would also catch /leagues/join.
+  const leagueId: MiddlewareHandler<AppEnv> = async (c, next) => (isUuid(c.req.param("id") ?? "") ? next() : c.json({ error: "league not found" }, 404));
 
   r.get("/leagues", async (c) => c.json(await leagues.mine(viewer(c))));
   r.post("/leagues", body(CreateLeagueRequest), async (c) => reply(c, await leagues.create(viewer(c), c.req.valid("json"))));
   r.post("/leagues/join", body(JoinLeagueRequest), async (c) => reply(c, await leagues.join(viewer(c), c.req.valid("json").inviteCode)));
 
-  r.get("/leagues/:id", async (c) => {
-    const id = c.req.param("id");
-    return isUuid(id) ? reply(c, await leagues.state(id, viewer(c))) : c.json({ error: "league not found" }, 404);
-  });
-  r.put("/leagues/:id/squad", body(SquadRequest), async (c) => reply(c, await leagues.setSquad(viewer(c), c.req.param("id"), c.req.valid("json"))));
-  r.post("/leagues/:id/play", async (c) => reply(c, await leagues.play(viewer(c), c.req.param("id"))));
+  r.get("/leagues/:id", leagueId, async (c) => reply(c, await leagues.state(c.req.param("id"), viewer(c))));
+  r.put("/leagues/:id/squad", leagueId, body(SquadRequest), async (c) => reply(c, await leagues.setSquad(viewer(c), c.req.param("id"), c.req.valid("json"))));
+  r.post("/leagues/:id/play", leagueId, async (c) => reply(c, await leagues.play(viewer(c), c.req.param("id"))));
 
   return r;
 }
