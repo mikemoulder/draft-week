@@ -16,7 +16,7 @@ locked), join by invite code, pick a 5 trader squad within a budget from a grade
 matchup preview while picking, replay or live results with "your matchup", W/L/D standings, Back your squad
 (Strike copy trading, builder code FTL), /profile with stats, league history, most-picked traders and live copies
 with a stop button.
-**Deployed:** web c22def3 on Vercel at https://strike-ftl.vercel.app, API 9494b41 on the VPS.
+**Deployed:** web and API 827acc0 (Vercel at https://strike-ftl.vercel.app, API on the VPS).
 **Game model:** FPL style. Traders priced 20-60 by last week's points percentile, graded A+ to D by return.
 Picks are not exclusive, but never your own Strike account. 3 starters + 2 bench, captain x1.5, auto subs.
 Matchups: managers meet in join order (1st v 2nd), bots take the rest. Economics in docs/economics.md.
@@ -66,6 +66,8 @@ Repeated headless runs against Vercel     Vercel Security Checkpoint 403s this V
 r.use("/leagues/:id/*") in Hono             also matches /leagues/join. Put id guards on the id routes only
 Python str.replace with a computed slice  an empty match inserts at every character. Assert the old text first
 Passing a function prop to CountUp         breaks prerender from a server component. Use its default format
+CSS animation on transform with fill both  keeps the element a containing block: position: fixed overlays get
+                                           trapped and out-stacked. Fill backwards, and portal overlays to body
 ```
 
 ## Remaining work (commit roadmap)
