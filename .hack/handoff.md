@@ -4,9 +4,10 @@
 
 ## Next step
 
-The user re-tests the live site against their notes, in particular with a real wallet: sign in on the right
-network, join a friend's league by code, Back your squad for $20, then stop that copy from /profile. Then: demo
-video, judge-facing README (/skillz:readme), make the repo public, submit.
+1. The user runs one real "Copytrade your squad" ($20, one trader) and stops it from /profile. Then update the
+   README's "Not yet run" line to say it was done.
+2. Make the GitHub repo public (it is private; README code links and screenshots 404 for judges until then).
+3. Demo video (/skillz:demo-video), then submit with the same name and one-liner as the README.
 
 ## Current status
 
@@ -77,7 +78,7 @@ CSS animation on transform with fill both  keeps the element a containing block:
 6. Back your squad: LIVE with builder code FTL. Untested with a real wallet and real funds
 7. Feedback round 1: DONE (join fix, network-first sign-in, pairings, how it works, locked week, profile,
    logo + favicon + og:image, motion, why we built FTL)
-8. Hardening: README for judges, demo video, repo public, submit
+8. Hardening: README DONE (d98f51e, docs/integrations.md). Left: real copy test, repo public, demo video, submit
 Cut order if late:   copy trading -> live calendar leagues -> Solana/Ethereum sign-in
 ```
 
