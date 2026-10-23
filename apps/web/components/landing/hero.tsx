@@ -24,18 +24,18 @@ export function Hero({ stars }: { stars: PoolTrader[] }) {
             href="https://strikefinance.org"
             target="_blank"
             rel="noreferrer"
-            className="t-label inline-flex items-center gap-2 rounded-chip border border-line-strong py-1.5 pl-1.5 pr-3 text-fg-soft transition-colors hover:border-fg-mute hover:text-fg"
+            className="rise t-label inline-flex items-center gap-2 rounded-chip border border-line-strong py-1.5 pl-1.5 pr-3 text-fg-soft transition-colors hover:border-fg-mute hover:text-fg"
           >
             <Image src="/strike-logo.png" alt="" width={22} height={22} className="rounded-full" priority /> Powered by Strike
           </a>
-          <h1 className="t-display-xl mt-7 max-w-[10ch]">
+          <h1 className="rise t-display-xl mt-7 max-w-[10ch]" style={{ "--rise-delay": "80ms" } as React.CSSProperties}>
             Five traders. <span className="text-action">Seven days.</span>
           </h1>
-          <p className="t-lead mt-7 max-w-[500px] text-fg-soft">
-            Draft five real Strike traders into your hand. Every trade they make this week scores for you, and your friends
+          <p className="rise t-lead mt-7 max-w-[500px] text-fg-soft" style={{ "--rise-delay": "160ms" } as React.CSSProperties}>
+            Pick five real Strike traders within your budget. Every trade they make this week scores for you, and your friends
             are trying to beat you. Free to play.
           </p>
-          <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
+          <div className="rise mt-9 flex flex-wrap items-center gap-x-6 gap-y-4" style={{ "--rise-delay": "240ms" } as React.CSSProperties}>
             <Link href="/play" className="btn btn-action btn-lg">
               Start a league <ArrowRight size={17} weight="bold" aria-hidden />
             </Link>
@@ -52,8 +52,16 @@ export function Hero({ stars }: { stars: PoolTrader[] }) {
             return (
               <div
                 key={t.accountId}
-                className="absolute left-1/2 top-4 -ml-[104px]"
-                style={{ transform: `translate(${f.x}px, ${f.y}px) rotate(${f.r}deg)`, zIndex: 5 - Math.abs(i - 2) }}
+                className="deal absolute left-1/2 top-4 -ml-[104px]"
+                style={
+                  {
+                    "--fan": `translate(${f.x}px, ${f.y}px) rotate(${f.r}deg)`,
+                    // Dealt from the middle out, the way a hand is spread.
+                    "--deal-delay": `${300 + Math.abs(i - 2) * 110}ms`,
+                    transform: `translate(${f.x}px, ${f.y}px) rotate(${f.r}deg)`,
+                    zIndex: 5 - Math.abs(i - 2),
+                  } as React.CSSProperties
+                }
               >
                 <TraderCard trader={t} />
               </div>

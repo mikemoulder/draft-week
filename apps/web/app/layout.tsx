@@ -1,5 +1,5 @@
 /*
-THESIS      A trading-card club under floodlights: every Strike trader is a collectible card you draft into a five-card hand, and the week is a match you watch. It refuses to look like an exchange.
+THESIS      A trading-card club under floodlights: every Strike trader is a collectible card you pick into a five-card hand, and the week is a match you watch. It refuses to look like an exchange.
 WORLD       Warm night ground lit by sunset floodlight glows; Bricolage Grotesque display, Figtree text; rounded cards with tier frames; Phosphor duotone icons; orange is the action, gold the lead, red the red card.
 STORY       Hook with a fanned hand of this week's top real cards -> live facts -> last week's game of the week, replayed -> how a trade becomes a point -> nothing is simulated -> play.
 FIRST VIEW  Headline left, lead + orange action, a fanned hand of five real trader cards right, glowing; facts strip at the fold.
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://strike-ftl.vercel.app"),
   title: { default: "FTL: Fantasy Trading League for Strike", template: "%s | FTL" },
   description:
-    "FTL, the Fantasy Trading League. Draft five real Strike Finance traders. Every trade they make this week scores for you. Free to play, scored from Strike's public trade data.",
+    "FTL, the Fantasy Trading League. Pick five real Strike Finance traders. Every trade they make this week scores for you. Free to play, scored from Strike's public trade data.",
   openGraph: { type: "website", siteName: "FTL, Fantasy Trading League" },
   twitter: { card: "summary_large_image" },
 };

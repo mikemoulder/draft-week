@@ -15,7 +15,8 @@ export function TraderCard({ trader, tilt = 0, className, footer }: { trader: Ca
       className={cx("tcard w-[208px] shrink-0", className)}
       data-tier={trader.tier}
       data-style={trader.style}
-      style={tilt ? { transform: `rotate(${tilt}deg)` } : undefined}
+      data-tilt=""
+      style={tilt ? { rotate: `${tilt}deg` } : undefined}
       aria-label={`${trader.name}, rated ${trader.rating}, ${TIER_LABEL[trader.tier]} ${STYLE_META[trader.style].label}`}
     >
       <div className="tcard-inner flex h-full flex-col gap-3 p-4">

@@ -56,7 +56,7 @@ function PitchSlot({
     );
   }
   return (
-    <div className={cx("relative flex w-[104px] flex-col items-center gap-1.5 text-center sm:w-[124px]", swapping && "-translate-y-1")}>
+    <div key={trader.accountId} className={cx("pop-in relative flex w-[104px] flex-col items-center gap-1.5 text-center sm:w-[124px]", swapping && "-translate-y-1")}>
       <button type="button" onClick={onOpen} className="relative rounded-full" aria-label={`${trader.name}: details`} style={{ "--card-style": `var(--style-${trader.style})` } as React.CSSProperties}>
         <TraderAvatar accountId={trader.accountId} style={trader.style} avatarUrl={trader.avatarUrl} size={64} className={swapping ? "ring-4 ring-accent" : ""} />
         {captain ? (

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Crown, Ranking, Skull } from "@phosphor-icons/react/dist/ssr";
+import { Reveal } from "@/components/motion";
 import { Container } from "@/components/primitives";
 
 const RULES = [
@@ -30,10 +31,12 @@ export function Scoring() {
   return (
     <section id="scoring" className="scroll-mt-20 pb-[var(--section-y)]">
       <Container>
-        <h2 className="t-display-l mb-[var(--stack)] max-w-[15ch]">How a trade becomes a point.</h2>
+        <Reveal>
+          <h2 className="t-display-l mb-[var(--stack)] max-w-[15ch]">How a trade becomes a point.</h2>
+        </Reveal>
         <div className="grid gap-4 md:grid-cols-3">
-          {RULES.map(({ icon: Icon, color, big, title, body }) => (
-            <article key={title} className="relative overflow-hidden rounded-panel border border-line bg-tile p-7 md:p-8">
+          {RULES.map(({ icon: Icon, color, big, title, body }, i) => (
+            <Reveal as="article" key={title} delay={i * 80} className="relative overflow-hidden rounded-panel border border-line bg-tile p-7 md:p-8">
               <span className="absolute -right-6 -top-6 opacity-[0.12]" style={{ color }} aria-hidden>
                 <Icon size={150} weight="fill" />
               </span>
@@ -45,7 +48,7 @@ export function Scoring() {
               </p>
               <h3 className="t-title mt-3">{title}</h3>
               <p className="t-body mt-2 text-fg-mute">{body}</p>
-            </article>
+            </Reveal>
           ))}
         </div>
         <Link href="/how-it-works" className="t-body mt-6 inline-flex items-center gap-2 font-semibold text-action hover:underline">
