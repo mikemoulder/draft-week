@@ -114,6 +114,17 @@ describe.skipIf(!url)("leagues", () => {
     expect(err(await leagues.setSquad(alice, s.id, cheapSquad(1)))).toBe(409); // locked
 
     expect(await leagues.mine(alice)).toEqual([expect.objectContaining({ id: s.id, status: "final", members: 8 })]);
+
+    const profile = await leagues.profile(alice);
+    const mineRow = s.standings.find((x) => x.memberId === s.myMemberId)!;
+    expect(profile.leagues).toEqual([
+      expect.objectContaining({ id: s.id, replay: true, myPoints: mineRow.points, result: mineRow.result, captain: expect.objectContaining({ accountId: cheapSquad().captainId }) }),
+    ]);
+    expect(profile.leagues[0]!.opponent).toEqual(expect.any(String));
+    expect(profile.totals).toMatchObject({ leagues: 1, finished: 1, points: mineRow.points });
+    expect(profile.totals.wins + profile.totals.losses + profile.totals.draws).toBe(1);
+    expect(profile.favorites).toHaveLength(3);
+    expect(profile.favorites[0]).toMatchObject({ picks: 1 });
   });
 
   it("enforces the budget, the captain rule and this week's list", async () => {

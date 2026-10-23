@@ -16,10 +16,12 @@ export function leagueRoutes(leagues: LeagueService) {
   const r = new Hono<AppEnv>();
   r.use("/leagues", requireMe);
   r.use("/leagues/*", requireMe);
+  r.use("/me/history", requireMe);
   // Only the routes that take a league id. A wildcard here would also catch /leagues/join.
   const leagueId: MiddlewareHandler<AppEnv> = async (c, next) => (isUuid(c.req.param("id") ?? "") ? next() : c.json({ error: "league not found" }, 404));
 
   r.get("/leagues", async (c) => c.json(await leagues.mine(viewer(c))));
+  r.get("/me/history", async (c) => c.json(await leagues.profile(viewer(c))));
   r.post("/leagues", body(CreateLeagueRequest), async (c) => reply(c, await leagues.create(viewer(c), c.req.valid("json"))));
   r.post("/leagues/join", body(JoinLeagueRequest), async (c) => reply(c, await leagues.join(viewer(c), c.req.valid("json").inviteCode)));
 

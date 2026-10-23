@@ -1,6 +1,17 @@
 import { randomInt } from "node:crypto";
 import { and, asc, eq, inArray, lt } from "drizzle-orm";
-import { BASE_BUDGET, volumeBonus, type DayPoints, type LeagueState, type LeagueSummary, type PoolTrader, type SquadRequest } from "@draftweek/shared";
+import {
+  BASE_BUDGET,
+  volumeBonus,
+  type DayPoints,
+  type HistoryEntry,
+  type LeagueState,
+  type LeagueSummary,
+  type PoolTrader,
+  type Profile,
+  type SquadRequest,
+  type TraderStyle,
+} from "@draftweek/shared";
 import type { Db } from "../../db/client.js";
 import { leagueMembers, leagues, squads, traderDays, traders, users } from "../../db/schema.js";
 import type { StrikeClient } from "../../strike.js";
@@ -265,6 +276,61 @@ export function createLeagueService(db: Db, opts: { now?: () => Date; strike?: P
         });
       }
       return out.sort((a, b) => b.weekId.localeCompare(a.weekId));
+    },
+
+    /** Every league the viewer is in, with how it went, plus career totals for the profile page. */
+    async profile(viewer: Viewer): Promise<Profile> {
+      const rows = await db.select({ leagueId: leagueMembers.leagueId }).from(leagueMembers).where(eq(leagueMembers.userId, viewer.userId));
+      const leaguesOut: HistoryEntry[] = [];
+      const picks = new Map<string, { accountId: string; name: string; style: TraderStyle; avatarUrl: string | null; picks: number }>();
+      for (const { leagueId } of rows) {
+        const s = await state(leagueId, viewer);
+        if (!s.ok) continue;
+        const v = s.value;
+        const at = v.standings.findIndex((x) => x.memberId === v.myMemberId);
+        const mine = at >= 0 ? v.standings[at] : undefined;
+        const matchup = v.matchups.find((m) => m.a === v.myMemberId || m.b === v.myMemberId);
+        const opponentId = matchup ? (matchup.a === v.myMemberId ? matchup.b : matchup.a) : null;
+        const squad = v.squads.find((q) => q.memberId === v.myMemberId);
+        const trader = (id: string) => v.traders.find((t) => t.accountId === id);
+        for (const id of squad ? [...squad.starters, ...squad.bench] : []) {
+          const t = trader(id);
+          if (!t) continue;
+          const seen = picks.get(id) ?? { accountId: id, name: t.name, style: t.style, avatarUrl: t.avatarUrl, picks: 0 };
+          seen.picks++;
+          picks.set(id, seen);
+        }
+        leaguesOut.push({
+          id: v.id,
+          name: v.name,
+          weekId: v.weekId,
+          status: v.status,
+          replay: v.replay,
+          members: v.members.length,
+          myPoints: mine?.points ?? null,
+          myRank: at >= 0 ? at + 1 : null,
+          result: mine?.result ?? null,
+          opponent: opponentId ? (v.members.find((m) => m.id === opponentId)?.name ?? null) : null,
+          captain: squad ? { accountId: squad.captainId, name: trader(squad.captainId)?.name ?? squad.captainId.slice(0, 8) } : null,
+        });
+      }
+      leaguesOut.sort((a, b) => b.weekId.localeCompare(a.weekId) || a.name.localeCompare(b.name));
+      const finished = leaguesOut.filter((l) => l.status === "final");
+      const count = (r: "W" | "L" | "D") => finished.filter((l) => l.result === r).length;
+      const ranks = finished.map((l) => l.myRank).filter((r): r is number => r !== null);
+      return {
+        totals: {
+          leagues: leaguesOut.length,
+          finished: finished.length,
+          wins: count("W"),
+          losses: count("L"),
+          draws: count("D"),
+          points: Math.round(leaguesOut.reduce((sum, l) => sum + (l.myPoints ?? 0), 0) * 10) / 10,
+          bestRank: ranks.length ? Math.min(...ranks) : null,
+        },
+        favorites: [...picks.values()].sort((a, b) => b.picks - a.picks || a.name.localeCompare(b.name)).slice(0, 3),
+        leagues: leaguesOut,
+      };
     },
   };
 }

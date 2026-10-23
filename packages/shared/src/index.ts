@@ -202,6 +202,34 @@ export const LeagueSummary = z.object({
 });
 export type LeagueSummary = z.infer<typeof LeagueSummary>;
 
+// ── Profile ─────────────────────────────────────────────────────────────────
+
+export const HistoryEntry = LeagueSummary.extend({
+  replay: z.boolean(),
+  // The manager's head-to-head this week so far; null before kick-off.
+  result: z.enum(["W", "L", "D"]).nullable(),
+  opponent: z.string().nullable(),
+  captain: z.object({ accountId: z.string(), name: z.string() }).nullable(),
+});
+export type HistoryEntry = z.infer<typeof HistoryEntry>;
+
+export const Profile = z.object({
+  totals: z.object({
+    leagues: z.number(),
+    // W, L and D count finished weeks only.
+    finished: z.number(),
+    wins: z.number(),
+    losses: z.number(),
+    draws: z.number(),
+    points: z.number(),
+    bestRank: z.number().nullable(),
+  }),
+  // The traders this manager has picked most often, most first.
+  favorites: z.array(z.object({ accountId: z.string(), name: z.string(), style: TraderStyle, avatarUrl: z.string().nullable(), picks: z.number() })),
+  leagues: z.array(HistoryEntry),
+});
+export type Profile = z.infer<typeof Profile>;
+
 export const LeagueState = z.object({
   id: z.string(),
   name: z.string(),
