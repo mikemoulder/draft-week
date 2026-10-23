@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { Plus, Skull, Check, X } from "@phosphor-icons/react";
 import type { PoolTrader, TraderDetail } from "@draftweek/shared";
@@ -62,7 +63,8 @@ export function TraderSheet({
   const w = trader.prevWeek;
   const maxPts = Math.max(10, ...(detail?.days.map((d) => Math.abs(d.points)) ?? [10]));
 
-  return (
+  // Portalled to <body> so no transformed or animated ancestor can trap or out-stack the overlay.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={`${trader.name}, details`}>
       <button type="button" className="absolute inset-0 bg-[rgb(10_8_20_/_0.6)]" aria-label="Close" onClick={onClose} />
       <aside className="tcard-sheet relative flex h-full w-full max-w-[480px] flex-col overflow-y-auto bg-panel shadow-[var(--elev-pop)]" data-style={trader.style}>
@@ -170,6 +172,7 @@ export function TraderSheet({
           </div>
         ) : null}
       </aside>
-    </div>
+    </div>,
+    document.body,
   );
 }
