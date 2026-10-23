@@ -217,6 +217,9 @@ export function createLeagueService(db: Db, opts: { now?: () => Date; strike?: P
       const me = members.find((m) => m.userId === viewer.userId);
       if (!me) return fail(403, "you are not in this league");
       const prices = new Map((await draftPool(db, league.weekId)).map((t) => [t.accountId, t.price]));
+      // Fair play: a manager cannot score their own trading.
+      const [self] = await db.select({ accountId: users.strikeAccountId }).from(users).where(eq(users.id, viewer.userId));
+      if (self?.accountId && [...input.starters, ...input.bench].includes(self.accountId)) return fail(400, "you cannot pick your own Strike account");
       const problem = squadError(input, prices, BASE_BUDGET + me.budgetBonus);
       if (problem) return fail(400, problem);
       const row = { ...input, spent: squadCost(input, prices), updatedAt: now() };

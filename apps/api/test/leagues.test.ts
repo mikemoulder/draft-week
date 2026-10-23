@@ -127,6 +127,15 @@ describe.skipIf(!url)("leagues", () => {
     expect(err(await leagues.setSquad(bob, s.id, { ...sq, starters: [sq.starters[0]!, sq.starters[1]!, "not-a-trader"] }))).toBe(400);
   });
 
+  it("refuses a squad with the manager's own Strike account", async () => {
+    const s = must(await leagues.create(alice, { name: "Self", weekId: "2026-10-12" }));
+    const sq = cheapSquad();
+    await db.update(users).set({ strikeAccountId: sq.bench[0]! }).where(eq(users.id, alice.userId));
+    const r = await leagues.setSquad(alice, s.id, sq);
+    expect(r).toMatchObject({ ok: false, status: 400 });
+    expect((r as { error: string }).error).toMatch(/own Strike account/);
+  });
+
   it("lets friends join, pick the same traders, and see only their own squad until kick-off", async () => {
     const created = must(await leagues.create(alice, { name: "Friends", weekId: "2026-10-12" }));
     must(await leagues.setSquad(alice, created.id, cheapSquad()));
