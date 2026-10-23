@@ -55,9 +55,10 @@ Wallet sign-in, Cardano first
 No custody of trading keys
   why:        a key that can trade is a liability; Strike API wallets are per device by design
 
-Matchups: managers meet in join order (1st v 2nd, 3rd v 4th), bots take the rest (2026-10-23)
-  why:        the old outside-in seat pairing put the owner against a bot and friends never met (user test note)
-  instead of: random draws (harder to explain, and the page could not preview them)
+Matchups: a random draw at kick-off, managers v managers, bots only fill gaps (2026-10-23)
+  why:        join order let two people arrange to meet by joining back to back; the user asked for random by
+              default with no option. Seeded by league id so every read shows the same draw
+  instead of: seat 1 v 8 (owner always met a bot), then join order 1st v 2nd
 
 Network first, then wallet, at sign-in (2026-10-23)
   why:        a Strike account lives on one network and OKX shows under several; the user loaded the wrong one
