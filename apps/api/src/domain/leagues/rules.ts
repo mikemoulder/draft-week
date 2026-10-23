@@ -10,15 +10,11 @@ export const BENCH = ROSTER_SIZE - STARTERS;
 export const CAPTAIN_MULTIPLIER = 1.5;
 export const LEAGUE_SIZE = 8;
 
+// Bots get ordinary first names; the robot icon beside them already says they are bots.
 export const BOT_NAMES = [
-  "Margin Call Mike",
-  "Funding Fiona",
-  "Liquidation Larry",
-  "Wick Wendy",
-  "Spread Sam",
-  "Hodl Hannah",
-  "Leverage Leo",
-  "Stop Loss Stella",
+  "Alex", "Paul", "Steven", "Maya", "Daniel", "Sofia", "Marcus", "Chloe",
+  "Ryan", "Amara", "Leo", "Nina", "Tom", "Priya", "Ben", "Zoe",
+  "Kofi", "Hannah", "Luca", "Ivy", "Sam", "Elena", "Omar", "Jade",
 ];
 
 // ── Squads ──────────────────────────────────────────────────────────────────
@@ -48,6 +44,17 @@ export function defaultLineup(roster: string[], prevPoints: Map<string, number>)
  * on last week's points and activity with some noise, then taken best-first as long as the budget
  * left still covers the cheapest remaining traders for every open slot.
  */
+/** A league's own mix of bot names, the same every time for the same seed. */
+export function botNames(seed: string): string[] {
+  const rand = seeded(`names:${seed}`);
+  const names = [...BOT_NAMES];
+  for (let i = names.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [names[i], names[j]] = [names[j] as string, names[i] as string];
+  }
+  return names;
+}
+
 export function autoSquad(pool: PoolTrader[], budget: number, seed: string): LineupShape | null {
   if (pool.length < ROSTER_SIZE) return null;
   const rand = seeded(seed);

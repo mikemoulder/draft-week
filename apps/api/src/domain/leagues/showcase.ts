@@ -8,7 +8,7 @@ import { fills, traderDays, traders } from "../../db/schema.js";
 import { lastSuccessfulIngest } from "../ingest/run.js";
 import { addWeeks, weekBounds, weekIdOf } from "../scoring/weeks.js";
 import { draftPool } from "../traders/pool.js";
-import { BOT_NAMES, LEAGUE_SIZE, autoSquad, scoreLeague, squadCost, type PointsBook } from "./rules.js";
+import { LEAGUE_SIZE, autoSquad, botNames, scoreLeague, squadCost, type PointsBook } from "./rules.js";
 import { BASE_BUDGET } from "@draftweek/shared";
 
 const STATS_TTL_MS = 60_000;
@@ -40,7 +40,7 @@ export function createShowcase(db: Db, opts: { now?: () => Date } = {}) {
   async function buildGame(weekId: string) {
     const pool = await draftPool(db, weekId);
     const prices = new Map(pool.map((t) => [t.accountId, t.price]));
-    const members = BOT_NAMES.slice(0, LEAGUE_SIZE).map((name, seat) => ({
+    const members = botNames(weekId).slice(0, LEAGUE_SIZE).map((name, seat) => ({
       id: `bot-${seat}`,
       name,
       isBot: true,

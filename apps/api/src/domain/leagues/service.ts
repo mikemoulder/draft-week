@@ -18,7 +18,7 @@ import type { StrikeClient } from "../../strike.js";
 import { fail, ok, type Result } from "../result.js";
 import { draftPool, playableWeeks } from "../traders/pool.js";
 import {
-  BOT_NAMES,
+  botNames,
   LEAGUE_SIZE,
   autoSquad,
   daysRevealed,
@@ -76,12 +76,12 @@ export function createLeagueService(db: Db, opts: { now?: () => Date; strike?: P
   async function fillForKickoff(tx: Tx, league: League, pool: PoolTrader[]) {
     const members = await membersOf(tx, league.id);
     const usedNames = new Set(members.map((m) => m.displayName));
-    const botNames = BOT_NAMES.filter((n) => !usedNames.has(n));
+    const names = botNames(league.id).filter((n) => !usedNames.has(n));
     for (let seat = 0; seat < league.size; seat++) {
       if (members.some((m) => m.seat === seat)) continue;
       const [bot] = await tx
         .insert(leagueMembers)
-        .values({ leagueId: league.id, userId: null, displayName: botNames.shift() ?? `Bot ${seat + 1}`, seat })
+        .values({ leagueId: league.id, userId: null, displayName: names.shift() ?? `Bot ${seat + 1}`, seat })
         .returning();
       if (bot) members.push(bot);
     }

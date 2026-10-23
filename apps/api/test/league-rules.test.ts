@@ -5,6 +5,7 @@ import {
   daysRevealed,
   defaultLineup,
   leagueStatus,
+  botNames,
   pairings,
   scoreLeague,
   scoreLineupDay,
@@ -139,6 +140,15 @@ describe("scoring a lineup", () => {
       { memberId: "my", points: 33, result: "W" },
       { memberId: "mx", points: 16.5, result: "L" },
     ]);
+  });
+});
+
+describe("botNames", () => {
+  it("gives each league its own stable mix of distinct names", () => {
+    const a = botNames("league-a");
+    expect(botNames("league-a")).toEqual(a);
+    expect(new Set(a.slice(0, 8)).size).toBe(8);
+    expect(botNames("league-b").slice(0, 8)).not.toEqual(a.slice(0, 8));
   });
 });
 
