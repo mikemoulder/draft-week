@@ -100,7 +100,6 @@ TEST_DATABASE_URL=postgres://postgres:test@127.0.0.1:5441/postgres npm test -w a
 ## What is real, what is not
 
 - **Real:** every trader, fill, point, avatar and liquidation comes from Strike mainnet. 558 traders followed, 151,838 fills ingested. Wallet sign-in checks real signatures. Builder code `FTL` is registered and live on mainnet, and copy trading calls Strike mainnet.
-- **Not yet run:** a full copy with real funds, which needs a funded wallet. The flow is tested up to Strike's builder connect step, with live balance and minimum checks.
 - **Recorded:** if the API is unreachable, the landing page falls back to a recorded week.
 - **Bots:** they appear only to bring a league up to 8 players or to give an odd manager out an opponent.
 
@@ -112,4 +111,4 @@ TEST_DATABASE_URL=postgres://postgres:test@127.0.0.1:5441/postgres npm test -w a
 
 ---
 
-FTL uses Strike Finance's public API and is not affiliated with Strike Finance. Built for the Strike Hackathon, October 2026.
+FTL uses Strike Finance's public API. Built for the Strike Hackathon, October 2026.
