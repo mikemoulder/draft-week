@@ -6,6 +6,7 @@ import { Hero } from "@/components/landing/hero";
 import { Nav } from "@/components/landing/nav";
 import { Scoring } from "@/components/landing/scoring";
 import { Trust } from "@/components/landing/trust";
+import { Why } from "@/components/landing/why";
 import { getShowcase } from "@/lib/server-api";
 
 export default async function Home() {
@@ -18,6 +19,7 @@ export default async function Home() {
         <Facts stats={data.stats} live={live} />
         <Game showcase={data} />
         <Scoring />
+        <Why />
         <Trust stats={data.stats} live={live} />
         <Close />
       </main>
