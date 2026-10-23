@@ -63,6 +63,12 @@ Network first, then wallet, at sign-in (2026-10-23)
   why:        a Strike account lives on one network and OKX shows under several; the user loaded the wrong one
   instead of: one mixed list of every wallet on every chain
 
+League size is a cap, bots only make up the numbers (2026-10-23)
+  why:        the user wants events with as many people as possible; filling 500 seats with bots made most
+              players face a bot. Cap 8..500; at kick-off bots bring it to max(8, even). 300 managers measured:
+              0 bots, state ~50 ms, 150 KB. Polling slows to 15 s / 30 s for big leagues
+  instead of: fixed 8 seats; then 8-20 even seats filled with bots
+
 No picking your own Strike account (2026-10-23)
   why:        the obvious way to game the game; the API refuses it and the list marks it "You"
   open risk:  one person with two accounts hedging between them. Limited, not prevented: stated on /how-it-works
