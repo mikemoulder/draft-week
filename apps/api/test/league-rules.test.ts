@@ -108,8 +108,17 @@ describe("scoring a lineup", () => {
     expect(scoreLineupDay(lineup, book, 1)).toMatchObject({ points: 0, counted: [], subs: [] });
   });
 
-  it("pairs seats from the outside in and finds lead changes", () => {
-    expect(pairings([0, 1, 2, 3, 4, 5, 6, 7])).toEqual([[0, 7], [1, 6], [2, 5], [3, 4]]);
+  it("pairs managers with each other before bots", () => {
+    const seats = (humans: number) => Array.from({ length: 8 }, (_, seat) => ({ seat, isBot: seat >= humans }));
+    expect(pairings(seats(2))).toEqual([[0, 1], [2, 3], [4, 5], [6, 7]]);
+    // three managers: the third meets the first bot
+    expect(pairings(seats(3))[1]).toEqual([2, 3]);
+    // join order wins over seat number when a manager took a later seat
+    expect(pairings([{ seat: 0, isBot: false }, { seat: 1, isBot: true }, { seat: 5, isBot: false }, { seat: 7, isBot: true }])).toEqual([[0, 5], [1, 7]]);
+    expect(pairings(seats(8))).toEqual([[0, 1], [2, 3], [4, 5], [6, 7]]);
+  });
+
+  it("scores matchups, finds lead changes and records the result", () => {
     const lu = (id: string) => ({ captainId: id, starters: [id, `${id}2`, `${id}3`], bench: [`${id}4`, `${id}5`] });
     const dayBook = (pts: number[]) => new Map(pts.map((p, d) => [d, { points: p, liquidations: 0, firstLiquidationAt: null }]));
     const twoDayBook: PointsBook = new Map([
@@ -118,15 +127,18 @@ describe("scoring a lineup", () => {
     ]);
     const { matchups, standings } = scoreLeague(
       [
-        { memberId: "mx", seat: 0, lineup: lu("x") },
-        { memberId: "my", seat: 1, lineup: lu("y") },
+        { memberId: "mx", seat: 0, isBot: false, lineup: lu("x") },
+        { memberId: "my", seat: 1, isBot: false, lineup: lu("y") },
       ],
       twoDayBook,
       2,
     );
     expect(matchups[0]?.daily).toEqual([[15, 3], [1.5, 30]]);
     expect(matchups[0]?.events).toContainEqual({ kind: "leadChange", day: 1, matchupId: "mx:my", leaderId: "my" });
-    expect(standings.map((s) => s.memberId)).toEqual(["my", "mx"]);
+    expect(standings).toEqual([
+      { memberId: "my", points: 33, result: "W" },
+      { memberId: "mx", points: 16.5, result: "L" },
+    ]);
   });
 });
 

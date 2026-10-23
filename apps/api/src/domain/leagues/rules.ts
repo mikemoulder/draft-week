@@ -1,5 +1,7 @@
 // Pure league rules. No database access here, so every rule is unit tested directly.
-import type { LeagueStatus, Matchup, PoolTrader, ReplayEvent } from "@draftweek/shared";
+import { pairings, type LeagueStatus, type Matchup, type PoolTrader, type ReplayEvent } from "@draftweek/shared";
+
+export { pairings };
 import { DAY_MS, weekBounds } from "../scoring/weeks.js";
 
 export const ROSTER_SIZE = 5;
@@ -161,17 +163,7 @@ export function scoreLineupDay(lineup: LineupShape, book: PointsBook, day: numbe
   return result;
 }
 
-/** Fixed pairings for the week: seat 0 v 7, 1 v 6, 2 v 5, 3 v 4. */
-export function pairings(seats: number[]): [number, number][] {
-  const sorted = [...seats].sort((a, b) => a - b);
-  const pairs: [number, number][] = [];
-  for (let i = 0; i < Math.floor(sorted.length / 2); i++) {
-    pairs.push([sorted[i] as number, sorted[sorted.length - 1 - i] as number]);
-  }
-  return pairs;
-}
-
-export type ScoredMember = { memberId: string; seat: number; lineup: LineupShape | null };
+export type ScoredMember = { memberId: string; seat: number; isBot: boolean; lineup: LineupShape | null };
 
 export function scoreLeague(members: ScoredMember[], book: PointsBook, days: number) {
   const daily = new Map<string, DayResult[]>();
@@ -184,7 +176,7 @@ export function scoreLeague(members: ScoredMember[], book: PointsBook, days: num
   }
 
   const bySeat = new Map(members.map((m) => [m.seat, m]));
-  const matchups: Matchup[] = pairings(members.map((m) => m.seat)).map(([sa, sb]) => {
+  const matchups: Matchup[] = pairings(members).map(([sa, sb]) => {
     const a = bySeat.get(sa) as ScoredMember;
     const b = bySeat.get(sb) as ScoredMember;
     const da = daily.get(a.memberId) ?? [];
@@ -215,10 +207,18 @@ export function scoreLeague(members: ScoredMember[], book: PointsBook, days: num
     return { id, a: a.memberId, b: b.memberId, daily: rows, events };
   });
 
+  // Each manager's head-to-head result so far, read next to the points table.
+  const result = new Map<string, "W" | "L" | "D">();
+  for (const m of matchups) {
+    const [ta, tb] = m.daily.reduce(([x, y], [p, q]) => [x + p, y + q], [0, 0]);
+    result.set(m.a, ta > tb ? "W" : ta < tb ? "L" : "D");
+    result.set(m.b, tb > ta ? "W" : tb < ta ? "L" : "D");
+  }
   const standings = members
     .map((m) => ({
       memberId: m.memberId,
       points: Math.round((daily.get(m.memberId) ?? []).reduce((s, r) => s + r.points, 0) * 10) / 10,
+      result: days > 0 ? (result.get(m.memberId) ?? null) : null,
     }))
     .sort((x, y) => y.points - x.points);
 

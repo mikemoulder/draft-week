@@ -72,7 +72,7 @@ export function createShowcase(db: Db, opts: { now?: () => Date } = {}) {
     }
     const lineupBy = new Map(lineups.map((l) => [l.memberId, l]));
     const { matchups, standings } = scoreLeague(
-      members.map((m) => ({ memberId: m.id, seat: m.seat, lineup: lineupBy.get(m.id) ?? null })),
+      members.map((m) => ({ memberId: m.id, seat: m.seat, isBot: true, lineup: lineupBy.get(m.id) ?? null })),
       book,
       7,
     );

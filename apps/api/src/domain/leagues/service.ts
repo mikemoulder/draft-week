@@ -159,7 +159,7 @@ export function createLeagueService(db: Db, opts: { now?: () => Date; strike?: P
     }
     const squadBy = new Map(squadRows.map((s) => [s.memberId, s]));
     const scored = scoreLeague(
-      members.map((m) => ({ memberId: m.id, seat: m.seat, lineup: squadBy.get(m.id) ?? null })),
+      members.map((m) => ({ memberId: m.id, seat: m.seat, isBot: m.userId === null, lineup: squadBy.get(m.id) ?? null })),
       book,
       revealed,
     );

@@ -218,7 +218,8 @@ export const LeagueState = z.object({
   // Your own squad always; everyone's once the week is live or final.
   squads: z.array(Squad),
   matchups: z.array(Matchup),
-  standings: z.array(z.object({ memberId: z.string(), points: z.number() })),
+  // result: the manager's head-to-head this week so far (W, L or D), null before any day is revealed.
+  standings: z.array(z.object({ memberId: z.string(), points: z.number(), result: z.enum(["W", "L", "D"]).nullable() })),
   points: z.array(DayPoints),
   traders: z.array(z.object({ accountId: z.string(), name: z.string(), style: TraderStyle, avatarUrl: z.string().nullable() })),
 });
@@ -264,3 +265,16 @@ export type Health = z.infer<typeof Health>;
 
 export const ApiError = z.object({ error: z.string() });
 export type ApiError = z.infer<typeof ApiError>;
+
+// ── Matchups ────────────────────────────────────────────────────────────────
+
+/**
+ * The week's matchups. Managers meet each other first, in the order they joined (1st v 2nd, 3rd v 4th),
+ * then bots take the remaining pairs: the odd manager out meets a bot, and bots meet each other.
+ */
+export function pairings(members: { seat: number; isBot: boolean }[]): [number, number][] {
+  const order = [...members].sort((a, b) => Number(a.isBot) - Number(b.isBot) || a.seat - b.seat).map((m) => m.seat);
+  const pairs: [number, number][] = [];
+  for (let i = 0; i + 1 < order.length; i += 2) pairs.push([order[i] as number, order[i + 1] as number]);
+  return pairs;
+}
