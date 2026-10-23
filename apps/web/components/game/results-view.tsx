@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Crown, Robot, UserCircle } from "@phosphor-icons/react";
+import { Crown, HandCoins, Robot, UserCircle } from "@phosphor-icons/react";
 import type { LeagueState } from "@draftweek/shared";
 import { ReplayScoreboard } from "@/components/product/replay-scoreboard";
 import { cx } from "@/components/primitives";
@@ -25,6 +25,23 @@ export function ResultsView({ league }: { league: LeagueState }) {
   const label = (id: string) => (id === league.myMemberId ? "You" : name(id));
   return (
     <div className="flex flex-col gap-10 py-8">
+      {league.myMemberId && BUILDER_CODE ? (
+        <section
+          aria-label="Copytrade your squad"
+          className="flex flex-col items-start gap-5 rounded-panel border border-[color-mix(in_oklab,var(--action)_45%,transparent)] bg-[color-mix(in_oklab,var(--action)_9%,var(--tile))] p-5 md:flex-row md:items-center md:justify-between md:px-7"
+        >
+          <div className="flex items-center gap-4">
+            <span className="grid size-12 shrink-0 place-items-center rounded-[14px] bg-[color-mix(in_oklab,var(--action)_20%,transparent)] text-action">
+              <HandCoins size={26} weight="duotone" aria-hidden />
+            </span>
+            <div>
+              <h2 className="t-title">Believe in your five? Copy them on Strike.</h2>
+              <p className="t-small mt-1 text-fg-mute">Their next trades open in your Strike account, within limits you set. Stop any time.</p>
+            </div>
+          </div>
+          <BackSquadButton league={league} className="w-full shrink-0 md:w-auto" />
+        </section>
+      ) : null}
       <section aria-label="Matchup">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <p className="t-label">{viewing === mine.id && isMine(mine) ? `Your matchup: you v ${opponent(mine)}` : `Watching ${name(current.a)} v ${name(current.b)}`}</p>
@@ -41,15 +58,6 @@ export function ResultsView({ league }: { league: LeagueState }) {
           caption={league.status === "live" ? `Live: ${days} of 7 days in. Points update every five minutes.` : undefined}
         />
       </section>
-      {league.myMemberId && BUILDER_CODE ? (
-        <section aria-label="Back your squad" className="flex flex-col items-start gap-4 rounded-panel border border-line p-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="t-title">Believe in your five?</h2>
-            <p className="t-small mt-1 text-fg-mute">Copy them on Strike and their next trades open in your account, within limits you set.</p>
-          </div>
-          <BackSquadButton league={league} className="shrink-0" />
-        </section>
-      ) : null}
       <aside className="grid gap-8 lg:grid-cols-[5fr_7fr]">
         <section aria-label="Standings" className="rounded-panel bg-tile p-6">
           <h2 className="t-display-m mb-4">Standings</h2>

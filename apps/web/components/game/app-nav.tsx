@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/logo";
+import { ManagerAvatar } from "@/components/manager-avatar";
 import { Container } from "@/components/primitives";
 import { useSession } from "@/components/session";
 
@@ -21,8 +22,13 @@ export function AppNav() {
             <Link href="/play" className="t-label hidden text-fg-mute hover:text-fg sm:inline">
               My leagues
             </Link>
-            <Link href="/profile" className="t-label max-w-[18ch] truncate text-fg-soft hover:text-fg" title="Your profile">
-              {me.displayName}
+            <Link
+              href="/profile"
+              className="rounded-full ring-2 ring-line-strong transition-shadow hover:ring-action focus-visible:ring-action"
+              aria-label={`Your profile, ${me.displayName}`}
+              title={me.displayName}
+            >
+              <ManagerAvatar me={me} />
             </Link>
             <button
               type="button"

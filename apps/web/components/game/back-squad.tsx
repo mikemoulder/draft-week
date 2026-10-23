@@ -15,15 +15,15 @@ const STRIKE_APP = "https://app.strikefinance.org";
 
 type RowState = { state: "copying" | "done" | "already" | "failed"; note?: string };
 
-/** The button that opens "Back your squad". Renders nothing until FTL has a builder code. */
-export function BackSquadButton({ league, className }: { league: LeagueState; className?: string }) {
+/** The button that opens "Copytrade your squad". Renders nothing until FTL has a builder code. */
+export function BackSquadButton({ league, className, variant = "action" }: { league: LeagueState; className?: string; variant?: "action" | "ghost" }) {
   const [open, setOpen] = useState(false);
   const squad = league.squads.find((s) => s.memberId === league.myMemberId);
   if (!BUILDER_CODE || !squad) return null;
   return (
     <>
-      <button type="button" className={cx("btn btn-ghost btn-lg", className)} onClick={() => setOpen(true)}>
-        <HandCoins size={18} weight="duotone" aria-hidden /> Back your squad on Strike
+      <button type="button" className={cx("btn btn-lg", variant === "action" ? "btn-action" : "btn-ghost", className)} onClick={() => setOpen(true)}>
+        <HandCoins size={18} weight="duotone" aria-hidden /> Copytrade your squad
       </button>
       {open ? <BackSquadSheet league={league} ids={[...squad.starters, ...squad.bench]} onClose={() => setOpen(false)} /> : null}
     </>
@@ -119,13 +119,13 @@ function BackSquadSheet({ league, ids, onClose }: { league: LeagueState; ids: st
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Back your squad">
+    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Copytrade your squad">
       <button type="button" className="absolute inset-0 bg-[rgb(10_8_20_/_0.6)]" aria-label="Close" onClick={() => !busy && onClose()} />
       <aside className="relative flex h-full w-full max-w-[480px] flex-col overflow-y-auto bg-panel shadow-[var(--elev-pop)]">
         <div className="flex items-start gap-4 border-b border-line p-6">
           <HandCoins size={36} weight="duotone" className="mt-1 text-accent" aria-hidden />
           <div className="min-w-0 flex-1">
-            <p className="t-display-m">Back your squad</p>
+            <p className="t-display-m">Copytrade your squad</p>
             <p className="t-small mt-1 text-fg-mute">Copy your picks with Strike&apos;s own copy trading. Their next trades open in your Strike account, scaled to the amount you set.</p>
           </div>
           <button ref={closeRef} type="button" onClick={onClose} disabled={busy} className="grid size-10 shrink-0 place-items-center rounded-full bg-fill hover:bg-fill-strong" aria-label="Close">

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowRight, ArrowSquareOut, Crown, HandCoins, StopCircle, Trophy, UserCircle, Wallet } from "@phosphor-icons/react";
+import { ArrowRight, ArrowSquareOut, Crown, HandCoins, StopCircle, Trophy, Wallet } from "@phosphor-icons/react";
 import type { HistoryEntry, Profile } from "@draftweek/shared";
 import { TraderAvatar } from "@/components/cards/avatar";
 import { CHAIN_LABEL, ChainMark } from "@/components/chain-mark";
+import { ManagerAvatar } from "@/components/manager-avatar";
 import { Container, cx } from "@/components/primitives";
 import { useSession } from "@/components/session";
 import { ErrorState, toast } from "@/components/states";
@@ -60,8 +61,13 @@ export default function ProfilePage() {
     <Container className="py-12 md:py-16">
       <header className="flex flex-col gap-6 border-b border-line pb-8 md:flex-row md:items-end md:justify-between">
         <div className="flex items-center gap-5">
-          <span className="grid size-16 place-items-center rounded-full bg-fill text-fg-soft">
-            {wallet ? <ChainMark chain={wallet.chain} size={30} /> : <UserCircle size={34} weight="duotone" aria-hidden />}
+          <span className="relative">
+            <ManagerAvatar me={me} size={72} className="ring-2 ring-line-strong" />
+            {wallet ? (
+              <span className="absolute -bottom-1 -right-1 grid size-7 place-items-center rounded-full bg-panel text-fg-soft ring-2 ring-ground" title={CHAIN_LABEL[wallet.chain]}>
+                <ChainMark chain={wallet.chain} size={16} />
+              </span>
+            ) : null}
           </span>
           <div className="min-w-0">
             <p className="t-label">Manager</p>
@@ -263,7 +269,7 @@ function Copies() {
       ) : copies === null ? (
         <div className="skeleton mt-3 h-20" />
       ) : copies.length === 0 ? (
-        <p className="t-small mt-3 text-fg-mute">You are not copying anyone. Back your squad from a league page to copy the traders you picked.</p>
+        <p className="t-small mt-3 text-fg-mute">You are not copying anyone. Copytrade your squad from a league page to copy the traders you picked.</p>
       ) : (
         <ul className="mt-3 flex flex-col gap-2">
           {copies.map((c) => (

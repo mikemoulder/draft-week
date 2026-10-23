@@ -192,6 +192,8 @@ export function SquadBuilder({ league, pool, onChange }: { league: LeagueState; 
     try {
       if (dirty) await api.put<LeagueState>(`/leagues/${league.id}/squad`, body());
       onChange(await api.post<LeagueState>(`/leagues/${league.id}/play`));
+      // The results replace the builder: start them from the top, where the matchup and copytrade sit.
+      window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not play the week");
       setBusy(null);
