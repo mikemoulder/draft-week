@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LockKey } from "@phosphor-icons/react";
 import type { LeagueState, LeagueSummary, WeekInfo } from "@draftweek/shared";
 import { Container, cx } from "@/components/primitives";
 import { useSession } from "@/components/session";
@@ -19,11 +20,21 @@ function StatusChip({ status }: { status: LeagueSummary["status"] }) {
   );
 }
 
+/** The id of the week (its Monday, UTC) that contains `at`. */
+function mondayOf(at: Date): string {
+  const d = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()));
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
+}
+
 function CreateLeague({ weeks, defaultName, onCancel }: { weeks: WeekInfo[]; defaultName: string; onCancel: () => void }) {
   const router = useRouter();
   const [name, setName] = useState(defaultName);
   const [weekId, setWeekId] = useState(weeks.find((w) => w.status === "final")?.id ?? weeks[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
+  // The week in progress is never playable (no hindsight picks), but it is listed so its absence makes sense.
+  const [current] = useState(() => mondayOf(new Date()));
+  const rows = [...weeks, ...(weeks.some((w) => w.id === current) ? [] : [{ id: current } as WeekInfo])].sort((a, b) => a.id.localeCompare(b.id));
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -56,7 +67,22 @@ function CreateLeague({ weeks, defaultName, onCancel }: { weeks: WeekInfo[]; def
       <fieldset className="mt-6">
         <legend className="t-label">Week</legend>
         <div className="mt-2 border-t border-line">
-          {weeks.map((w) => (
+          {rows.map((w) =>
+            w.id === current && !weeks.some((x) => x.id === current) ? (
+              <div key={w.id} className="flex gap-4 border-b border-line px-1 py-4 opacity-80" aria-disabled="true">
+                <LockKey size={18} weight="duotone" className="mt-1 shrink-0 text-fg-mute" aria-hidden />
+                <span className="flex-1">
+                  <span className="t-title block">
+                    {weekRange(w.id)} <span className="t-label ml-1 rounded-chip bg-fill px-2 py-0.5 align-middle text-[10px]">This week</span>
+                  </span>
+                  <span className="t-small block text-fg-mute">
+                    Picks closed at kick-off on Monday. Its results are already coming in, so picking now would be picking with hindsight.
+                    Replay a finished week now, or pick for next week and watch it live.
+                  </span>
+                </span>
+                <span className="t-label shrink-0">Locked</span>
+              </div>
+            ) : (
             <label key={w.id} className={cx("flex cursor-pointer gap-4 border-b border-line px-1 py-4", weekId === w.id && "bg-fill")}>
               <input type="radio" name="week" value={w.id} checked={weekId === w.id} onChange={() => setWeekId(w.id)} className="mt-1 accent-[var(--fg)]" />
               <span className="flex-1">
@@ -65,7 +91,8 @@ function CreateLeague({ weeks, defaultName, onCancel }: { weeks: WeekInfo[]; def
               </span>
               <span className="t-label shrink-0">{w.draftable} traders</span>
             </label>
-          ))}
+            ),
+          )}
         </div>
       </fieldset>
       <div className="mt-6 flex flex-wrap gap-3">
