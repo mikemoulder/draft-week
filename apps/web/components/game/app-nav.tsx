@@ -21,7 +21,9 @@ export function AppNav() {
             <Link href="/play" className="t-label hidden text-fg-mute hover:text-fg sm:inline">
               My leagues
             </Link>
-            <span className="t-label max-w-[18ch] truncate text-fg-soft">{me.displayName}</span>
+            <Link href="/profile" className="t-label max-w-[18ch] truncate text-fg-soft hover:text-fg" title="Your profile">
+              {me.displayName}
+            </Link>
             <button
               type="button"
               className="t-label text-fg-mute hover:text-fg"
