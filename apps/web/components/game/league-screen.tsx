@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PoolTrader } from "@draftweek/shared";
 import { LeagueHeader } from "@/components/game/league-header";
+import { MatchupsPreview } from "@/components/game/matchups-panel";
 import { ResultsView } from "@/components/game/results-view";
 import { SquadBuilder } from "@/components/game/squad-builder";
 import { useLeague } from "@/components/game/use-league";
@@ -60,6 +61,7 @@ export function LeagueScreen({ id }: { id: string }) {
     <Container className="py-10 md:py-14">
       <LeagueHeader league={league} />
       {league.status === "picking" && pool ? <SquadBuilder league={league} pool={pool} onChange={setLeague} /> : null}
+      {league.status === "picking" ? <MatchupsPreview league={league} /> : null}
       {league.status === "live" || league.status === "final" ? <ResultsView league={league} /> : null}
     </Container>
   );
