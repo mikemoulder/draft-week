@@ -75,6 +75,7 @@ export function createShowcase(db: Db, opts: { now?: () => Date } = {}) {
       members.map((m) => ({ memberId: m.id, seat: m.seat, isBot: true, lineup: lineupBy.get(m.id) ?? null })),
       book,
       7,
+      weekId,
     );
 
     // Game of the week: most lead changes, then a liquidation on screen, then the closest finish.

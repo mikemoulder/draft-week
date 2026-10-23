@@ -1,5 +1,5 @@
 // Pure league rules. No database access here, so every rule is unit tested directly.
-import { MIN_LEAGUE_SIZE, kickoffSize, pairings, type LeagueStatus, type Matchup, type PoolTrader, type ReplayEvent } from "@draftweek/shared";
+import { MIN_LEAGUE_SIZE, kickoffSize, pairings, seededRandom, type LeagueStatus, type Matchup, type PoolTrader, type ReplayEvent } from "@draftweek/shared";
 
 export { kickoffSize, pairings };
 import { DAY_MS, weekBounds } from "../scoring/weeks.js";
@@ -22,15 +22,7 @@ export const BOT_NAMES = [
 export type LineupShape = { captainId: string; starters: string[]; bench: string[] };
 
 // Small deterministic PRNG so a bot's squad is reproducible from its seed.
-function seeded(seed: string): () => number {
-  let h = 2166136261;
-  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
-  return () => {
-    h = Math.imul(h ^ (h >>> 15), 2246822507);
-    h = Math.imul(h ^ (h >>> 13), 3266489909);
-    return ((h ^= h >>> 16) >>> 0) / 4294967296;
-  };
-}
+const seeded = seededRandom;
 
 /** Best three by last week's points start, the best of them captains. */
 export function defaultLineup(roster: string[], prevPoints: Map<string, number>): LineupShape {
@@ -172,7 +164,8 @@ export function scoreLineupDay(lineup: LineupShape, book: PointsBook, day: numbe
 
 export type ScoredMember = { memberId: string; seat: number; isBot: boolean; lineup: LineupShape | null };
 
-export function scoreLeague(members: ScoredMember[], book: PointsBook, days: number) {
+/** `seed` (the league id) seeds the random draw of matchups. */
+export function scoreLeague(members: ScoredMember[], book: PointsBook, days: number, seed: string) {
   const daily = new Map<string, DayResult[]>();
   for (const m of members) {
     const results: DayResult[] = [];
@@ -183,7 +176,7 @@ export function scoreLeague(members: ScoredMember[], book: PointsBook, days: num
   }
 
   const bySeat = new Map(members.map((m) => [m.seat, m]));
-  const matchups: Matchup[] = pairings(members).map(([sa, sb]) => {
+  const matchups: Matchup[] = pairings(members, seed).map(([sa, sb]) => {
     const a = bySeat.get(sa) as ScoredMember;
     const b = bySeat.get(sb) as ScoredMember;
     const da = daily.get(a.memberId) ?? [];

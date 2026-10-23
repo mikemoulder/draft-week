@@ -109,14 +109,23 @@ describe("scoring a lineup", () => {
     expect(scoreLineupDay(lineup, book, 1)).toMatchObject({ points: 0, counted: [], subs: [] });
   });
 
-  it("pairs managers with each other before bots", () => {
-    const seats = (humans: number) => Array.from({ length: 8 }, (_, seat) => ({ seat, isBot: seat >= humans }));
-    expect(pairings(seats(2))).toEqual([[0, 1], [2, 3], [4, 5], [6, 7]]);
-    // three managers: the third meets the first bot
-    expect(pairings(seats(3))[1]).toEqual([2, 3]);
-    // join order wins over seat number when a manager took a later seat
-    expect(pairings([{ seat: 0, isBot: false }, { seat: 1, isBot: true }, { seat: 5, isBot: false }, { seat: 7, isBot: true }])).toEqual([[0, 5], [1, 7]]);
-    expect(pairings(seats(8))).toEqual([[0, 1], [2, 3], [4, 5], [6, 7]]);
+  it("draws matchups at random, managers against managers before bots", () => {
+    const seats = (humans: number, size = 8) => Array.from({ length: size }, (_, seat) => ({ seat, isBot: seat >= humans }));
+    const flat = (p: [number, number][]) => p.flat().sort((a, b) => a - b);
+    // everyone plays exactly once, and the draw is stable for a league
+    const draw = pairings(seats(8), "league-a");
+    expect(flat(draw)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    expect(pairings(seats(8), "league-a")).toEqual(draw);
+    // different leagues draw differently, and join order does not decide it
+    const draws = new Set(["a", "b", "c", "d", "e", "f"].map((k) => JSON.stringify(pairings(seats(8), k))));
+    expect(draws.size).toBeGreaterThan(1);
+    expect(draws.has(JSON.stringify([[0, 1], [2, 3], [4, 5], [6, 7]]))).toBe(draws.size === 1);
+    // two managers and six bots: the managers always meet each other
+    for (const k of ["a", "b", "c", "d"]) expect(pairings(seats(2), k)).toContainEqual(expect.arrayContaining([0, 1]));
+    // three managers: two meet, the odd one out meets a bot
+    const three = pairings(seats(3), "x");
+    const humanPairs = three.filter(([a, b]) => a < 3 && b < 3);
+    expect(humanPairs).toHaveLength(1);
   });
 
   it("scores matchups, finds lead changes and records the result", () => {
@@ -133,9 +142,13 @@ describe("scoring a lineup", () => {
       ],
       twoDayBook,
       2,
+      "league-a",
     );
-    expect(matchups[0]?.daily).toEqual([[15, 3], [1.5, 30]]);
-    expect(matchups[0]?.events).toContainEqual({ kind: "leadChange", day: 1, matchupId: "mx:my", leaderId: "my" });
+    // The draw also decides home and away, so read the rows from mx's side.
+    const m = matchups[0]!;
+    const fromX = m.daily.map(([a, b]) => (m.a === "mx" ? [a, b] : [b, a]));
+    expect(fromX).toEqual([[15, 3], [1.5, 30]]);
+    expect(m.events).toContainEqual({ kind: "leadChange", day: 1, matchupId: m.id, leaderId: "my" });
     expect(standings).toEqual([
       { memberId: "my", points: 33, result: "W" },
       { memberId: "mx", points: 16.5, result: "L" },

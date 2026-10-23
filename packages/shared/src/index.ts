@@ -314,12 +314,34 @@ export type ApiError = z.infer<typeof ApiError>;
 // ── Matchups ────────────────────────────────────────────────────────────────
 
 /**
- * The week's matchups. Managers meet each other first, in the order they joined (1st v 2nd, 3rd v 4th),
- * then bots take the remaining pairs: the odd manager out meets a bot, and bots meet each other.
+ * The week's matchups, drawn at random at kick-off. Managers are shuffled and paired with each other;
+ * bots only fill the gaps (an odd manager out, or a league under the minimum). The shuffle is seeded
+ * by the league, so every read of the league shows the same draw, and join order decides nothing.
  */
-export function pairings(members: { seat: number; isBot: boolean }[]): [number, number][] {
-  const order = [...members].sort((a, b) => Number(a.isBot) - Number(b.isBot) || a.seat - b.seat).map((m) => m.seat);
+export function pairings(members: { seat: number; isBot: boolean }[], seed: string): [number, number][] {
+  const rand = seededRandom(`draw:${seed}`);
+  const shuffle = (xs: number[]) => {
+    for (let i = xs.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [xs[i], xs[j]] = [xs[j] as number, xs[i] as number];
+    }
+    return xs;
+  };
+  const seats = (bot: boolean) => members.filter((m) => m.isBot === bot).map((m) => m.seat).sort((a, b) => a - b);
+  const order = [...shuffle(seats(false)), ...shuffle(seats(true))];
   const pairs: [number, number][] = [];
   for (let i = 0; i + 1 < order.length; i += 2) pairs.push([order[i] as number, order[i + 1] as number]);
   return pairs;
+}
+
+/** A small deterministic PRNG (FNV-1a seeded xorshift-multiply), so a seed always gives the same sequence. */
+export function seededRandom(seed: string): () => number {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+  return () => {
+    h = Math.imul(h ^ (h >>> 15), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
 }

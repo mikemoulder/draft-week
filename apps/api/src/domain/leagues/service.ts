@@ -176,6 +176,7 @@ export function createLeagueService(db: Db, opts: { now?: () => Date; strike?: P
       members.map((m) => ({ memberId: m.id, seat: m.seat, isBot: m.userId === null, lineup: squadBy.get(m.id) ?? null })),
       book,
       revealed,
+      league.id,
     );
     return ok({ ...base, ...scored, points });
   }
