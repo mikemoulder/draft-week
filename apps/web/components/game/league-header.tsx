@@ -1,7 +1,10 @@
-import { CalendarBlank, CheckCircle, UsersThree } from "@phosphor-icons/react";
+"use client";
+
+import { CalendarBlank, CheckCircle } from "@phosphor-icons/react";
 import type { LeagueState } from "@draftweek/shared";
 import { STATUS_LABEL, weekRange } from "@/lib/format";
 import { CopyCode } from "./copy-code";
+import { MembersButton } from "./members-sheet";
 
 export function LeagueHeader({ league }: { league: LeagueState }) {
   const humans = league.members.filter((m) => !m.isBot).length;
@@ -18,10 +21,7 @@ export function LeagueHeader({ league }: { league: LeagueState }) {
           <span className="inline-flex items-center gap-1.5">
             <CalendarBlank size={18} weight="duotone" aria-hidden /> {weekRange(league.weekId)}
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <UsersThree size={18} weight="duotone" aria-hidden /> {humans} {humans === 1 ? "manager" : "managers"}
-            {league.members.length > humans ? ` and ${league.members.length - humans} bots` : league.status === "picking" ? ", bots fill the empty seats at kick-off" : ""}
-          </span>
+          <MembersButton league={league} />
           {league.status === "picking" ? (
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle size={18} weight="duotone" aria-hidden /> {ready} of {humans} squads picked
