@@ -29,10 +29,13 @@ export function LeagueHeader({ league }: { league: LeagueState }) {
           ) : null}
         </p>
       </div>
-      {league.status === "picking" && !league.replay ? (
+      {league.status === "picking" ? (
         <div className="flex flex-col gap-2 md:items-end">
           <p className="t-label">Invite code</p>
           <CopyCode code={league.inviteCode} />
+          <p className="t-small text-fg-mute md:text-right">
+            {league.replay ? "Friends can join until the owner plays the week." : "Friends can join until kick-off on Monday."}
+          </p>
         </div>
       ) : null}
     </div>

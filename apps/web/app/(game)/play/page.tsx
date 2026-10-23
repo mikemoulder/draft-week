@@ -210,7 +210,7 @@ export default function PlayPage() {
           <aside className="flex flex-col gap-4">
             <p className="t-label">Got an invite code</p>
             <JoinLeague />
-            <p className="t-small text-fg-mute">Friends can join until the owner starts the draft. Empty seats are filled by bots.</p>
+            <p className="t-small text-fg-mute">Ask a friend for the code on their league page. You can join until the week kicks off, and bots fill any empty seats.</p>
           </aside>
         </div>
       )}
