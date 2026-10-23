@@ -42,7 +42,7 @@ function MembersSheet({ league, onClose }: { league: LeagueState; onClose: () =>
   }, [onClose]);
 
   const picking = league.status === "picking";
-  // Join order: managers by seat, then bots, the same order the matchups are drawn in.
+  // Join order: managers by seat, then bots.
   const members = [...league.members].sort((a, b) => Number(a.isBot) - Number(b.isBot) || a.seat - b.seat);
   const standing = new Map(league.standings.map((s, i) => [s.memberId, { ...s, rank: i + 1 }]));
   const humans = members.filter((m) => !m.isBot).length;

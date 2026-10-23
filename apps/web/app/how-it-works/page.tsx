@@ -224,9 +224,9 @@ export default function HowItWorks() {
               <p className="t-body flex gap-3 text-fg-soft">
                 <Sword size={22} weight="duotone" className="mt-0.5 shrink-0 text-action" aria-hidden />
                 <span>
-                  Every manager has one head-to-head matchup for the week. Managers play each other in the order they joined the league: 1st v
-                  2nd, 3rd v 4th. Bots only make up the numbers: a league with fewer than 8 managers gets bots up to 8, and an odd number of
-                  managers gets one bot so the last one has an opponent. An event with 120 managers plays as 120 people.
+                  Every manager has one head-to-head matchup for the week, drawn at random at kick-off, so nobody can arrange their opponent.
+                  Managers play managers; bots only make up the numbers: a league with fewer than 8 managers gets bots up to 8, and an odd
+                  number of managers gets one bot so the last one has an opponent. An event with 120 managers plays as 120 people.
                 </span>
               </p>
               <p className="t-body flex gap-3 text-fg-soft">
