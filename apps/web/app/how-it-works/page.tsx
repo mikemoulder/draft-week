@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 const WEEK = [
-  { icon: Users, title: "Start or join a league", body: "Eight seats. Invite friends with a code; bots fill any seat left empty." },
+  { icon: Users, title: "Start or join a league", body: "8 to 20 seats, set by whoever starts it. Invite friends with a code; bots fill any seat left empty." },
   { icon: Coins, title: "Pick five traders", body: `Spend up to ${BASE_BUDGET} credits, plus a bonus for your own trading on Strike.` },
   { icon: LockKey, title: "Squads lock at kick-off", body: "Monday 00:00 UTC. No changes once the week starts." },
   { icon: Ranking, title: "Seven days of points", body: "Every day your traders trade on Strike, they score for you." },
@@ -231,7 +231,7 @@ export default function HowItWorks() {
               <p className="t-body flex gap-3 text-fg-soft">
                 <Ranking size={22} weight="duotone" className="mt-0.5 shrink-0 text-action" aria-hidden />
                 <span>
-                  The standings rank all eight squads by total points, with each manager&apos;s matchup result (W, L or D) beside them. Win your
+                  The standings rank every squad in the league by total points, with each manager&apos;s matchup result (W, L or D) beside them. Win your
                   matchup to win the week; finish top for bragging rights over everyone else.
                 </span>
               </p>
