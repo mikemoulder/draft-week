@@ -11,12 +11,12 @@ export function Nav() {
       <Container className="flex h-16 items-center justify-between gap-6">
         <Logo />
         <nav className="hidden items-center gap-7 md:flex" aria-label="Main">
-          <a href="#scoring" className="flex items-center gap-1.5 t-small font-semibold text-fg-mute hover:text-fg">
-            <Ticket size={16} weight="duotone" aria-hidden /> How scoring works
-          </a>
-          <a href="#game" className="flex items-center gap-1.5 t-small font-semibold text-fg-mute hover:text-fg">
+          <Link href="/how-it-works" className="flex items-center gap-1.5 t-small font-semibold text-fg-mute hover:text-fg">
+            <Ticket size={16} weight="duotone" aria-hidden /> How it works
+          </Link>
+          <Link href="/#game" className="flex items-center gap-1.5 t-small font-semibold text-fg-mute hover:text-fg">
             <Trophy size={16} weight="duotone" aria-hidden /> Last week&apos;s game
-          </a>
+          </Link>
           <a href={REPO_URL} className="flex items-center gap-1.5 t-small font-semibold text-fg-mute hover:text-fg" target="_blank" rel="noreferrer">
             <GithubLogo size={16} weight="duotone" aria-hidden /> GitHub
           </a>

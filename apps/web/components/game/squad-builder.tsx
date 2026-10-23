@@ -7,6 +7,7 @@ import { TraderAvatar } from "@/components/cards/avatar";
 import { GradeBadge } from "@/components/cards/grade";
 import { StyleIcon } from "@/components/cards/style-icon";
 import { cx } from "@/components/primitives";
+import { useSession } from "@/components/session";
 import { toast } from "@/components/states";
 import { api } from "@/lib/api";
 import { STYLE_META } from "@/lib/styles";
@@ -87,6 +88,8 @@ function PitchSlot({
 
 export function SquadBuilder({ league, pool, onChange }: { league: LeagueState; pool: PoolTrader[]; onChange: (l: LeagueState) => void }) {
   const me = league.members.find((m) => m.id === league.myMemberId);
+  // Fair play: nobody can pick their own Strike account.
+  const selfId = useSession().me?.strike?.accountId ?? null;
   const saved = league.squads.find((s) => s.memberId === league.myMemberId);
   const [starters, setStarters] = useState<Slot[]>(saved ? [...saved.starters] : [null, null, null]);
   const [bench, setBench] = useState<Slot[]>(saved ? [...saved.bench] : [null, null]);
@@ -113,7 +116,7 @@ export function SquadBuilder({ league, pool, onChange }: { league: LeagueState; 
 
   // Never let a pick strand the squad: after buying t, the cheapest traders still available must
   // fit the budget for every slot left open.
-  const byPrice = useMemo(() => [...pool].sort((a, b) => a.price - b.price), [pool]);
+  const byPrice = useMemo(() => pool.filter((t) => t.accountId !== selfId).sort((a, b) => a.price - b.price), [pool, selfId]);
   const reserveAfter = (t: PoolTrader) => {
     const slots = 5 - picked.length - 1;
     let sum = 0;
@@ -126,10 +129,11 @@ export function SquadBuilder({ league, pool, onChange }: { league: LeagueState; 
     }
     return sum;
   };
-  const canAdd = (t: PoolTrader) => !picked.includes(t.accountId) && !full && t.price + reserveAfter(t) <= left;
+  const canAdd = (t: PoolTrader) => t.accountId !== selfId && !picked.includes(t.accountId) && !full && t.price + reserveAfter(t) <= left;
 
   function toggle(t: PoolTrader) {
     if (picked.includes(t.accountId)) return remove(t.accountId);
+    if (t.accountId === selfId) return toast.error("That's your own Strike account. You can't score your own trading.");
     if (full) return toast.error("Your squad is full. Remove someone first.");
     if (!canAdd(t)) return toast.error(`${t.name} costs ${t.price} credits. With ${left} left you could not fill the rest of your squad.`);
     const si = starters.indexOf(null);
@@ -357,7 +361,10 @@ export function SquadBuilder({ league, pool, onChange }: { league: LeagueState; 
                   <span className="flex min-w-0 items-center gap-3" style={{ "--card-style": `var(--style-${t.style})` } as React.CSSProperties}>
                     <TraderAvatar accountId={t.accountId} style={t.style} avatarUrl={t.avatarUrl} size={38} />
                     <span className="min-w-0">
-                      <span className="t-body block truncate font-semibold">{t.name}</span>
+                      <span className="t-body flex items-center gap-2 truncate font-semibold">
+                        {t.name}
+                        {t.accountId === selfId ? <span className="t-label shrink-0 rounded-chip bg-fill-strong px-2 py-0.5 text-[10px]">You</span> : null}
+                      </span>
                       <span className="t-label inline-flex items-center gap-1 text-[10px] text-[var(--card-style)]">
                         <StyleIcon style={t.style} size={11} /> {STYLE_META[t.style].label}
                         <span className="text-fg-faint md:hidden"> · {t.prevWeek.points} pts</span>

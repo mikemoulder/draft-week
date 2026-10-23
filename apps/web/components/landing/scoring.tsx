@@ -1,4 +1,5 @@
-import { Crown, Ranking, Skull } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
+import { ArrowRight, Crown, Ranking, Skull } from "@phosphor-icons/react/dist/ssr";
 import { Container } from "@/components/primitives";
 
 const RULES = [
@@ -47,6 +48,9 @@ export function Scoring() {
             </article>
           ))}
         </div>
+        <Link href="/how-it-works" className="t-body mt-6 inline-flex items-center gap-2 font-semibold text-action hover:underline">
+          The full rules, and how FTL stays fair <ArrowRight size={16} weight="bold" aria-hidden />
+        </Link>
       </Container>
     </section>
   );

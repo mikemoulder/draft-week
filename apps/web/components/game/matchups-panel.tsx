@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Robot, UserCircle } from "@phosphor-icons/react";
 import { pairings, type LeagueState } from "@draftweek/shared";
 import { cx } from "@/components/primitives";
@@ -32,7 +33,12 @@ export function MatchupsPreview({ league }: { league: LeagueState }) {
           <p className="t-label">This week&apos;s matchups</p>
           <h2 className="t-display-m mt-2">{league.replay ? "Drawn when the week is played" : "Drawn at kick-off on Monday"}</h2>
         </div>
-        <p className="t-small max-w-[46ch] text-fg-mute md:text-right">{MATCHUP_RULE}</p>
+        <p className="t-small max-w-[46ch] text-fg-mute md:text-right">
+          {MATCHUP_RULE}{" "}
+          <Link href="/how-it-works#matchups" className="text-action hover:underline">
+            Full rules
+          </Link>
+        </p>
       </div>
       <ul className="mt-6 grid gap-2 sm:grid-cols-2">
         {rows.map(([a, b], i) => (

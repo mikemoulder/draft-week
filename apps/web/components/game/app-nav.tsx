@@ -15,6 +15,9 @@ export function AppNav() {
         <Logo />
         {loading ? null : me ? (
           <div className="flex items-center gap-5">
+            <Link href="/how-it-works" className="t-label hidden text-fg-mute hover:text-fg md:inline">
+              How it works
+            </Link>
             <Link href="/play" className="t-label hidden text-fg-mute hover:text-fg sm:inline">
               My leagues
             </Link>
@@ -31,9 +34,14 @@ export function AppNav() {
             </button>
           </div>
         ) : (
-          <Link href="/signin" className="btn btn-action btn-sm">
-            Sign in
-          </Link>
+          <div className="flex items-center gap-5">
+            <Link href="/how-it-works" className="t-label hidden text-fg-mute hover:text-fg sm:inline">
+              How it works
+            </Link>
+            <Link href="/signin" className="btn btn-action btn-sm">
+              Sign in
+            </Link>
+          </div>
         )}
       </Container>
     </header>
