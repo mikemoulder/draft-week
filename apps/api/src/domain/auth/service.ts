@@ -3,7 +3,7 @@ import { and, eq, gt, isNull, lt, sql } from "drizzle-orm";
 import type { Chain, ChallengeResponse, Me } from "@draftweek/shared";
 import type { Db } from "../../db/client.js";
 import type { StrikeClient } from "../../strike.js";
-import { authChallenges, sessions, users, wallets } from "../../db/schema.js";
+import { authChallenges, sessions, traders, users, wallets } from "../../db/schema.js";
 import { fail, ok, type Result } from "../result.js";
 import { normalizeAddress } from "./address.js";
 import { buildMessage } from "./message.js";
@@ -24,11 +24,17 @@ export function createAuthService(db: Db, opts: { origin: string; now?: () => Da
       .select({ chain: wallets.chain, address: wallets.address })
       .from(wallets)
       .where(eq(wallets.userId, userId));
+    const [trader] = user.strikeAccountId
+      ? await db.select({ avatarUrl: traders.avatarUrl }).from(traders).where(eq(traders.accountId, user.strikeAccountId))
+      : [];
     return {
       id: user.id,
       displayName: user.displayName,
       wallets: owned,
-      strike: user.strikeAccountId && user.strikeAddress ? { accountId: user.strikeAccountId, address: user.strikeAddress } : null,
+      strike:
+        user.strikeAccountId && user.strikeAddress
+          ? { accountId: user.strikeAccountId, address: user.strikeAddress, avatarUrl: trader?.avatarUrl ?? null }
+          : null,
     };
   }
 

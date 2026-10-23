@@ -37,7 +37,8 @@ export const Me = z.object({
   displayName: z.string(),
   wallets: z.array(Wallet),
   // The Strike account behind the signed-in wallet, if it has one. Guests never do.
-  strike: z.object({ accountId: z.string(), address: z.string() }).nullable(),
+  // avatarUrl: the picture the player uploaded to Strike, when FTL has seen it.
+  strike: z.object({ accountId: z.string(), address: z.string(), avatarUrl: z.string().nullable() }).nullable(),
 });
 export type Me = z.infer<typeof Me>;
 
