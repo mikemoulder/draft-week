@@ -1,4 +1,4 @@
-import { Robot, Sword, UserCircle } from "@phosphor-icons/react";
+import { Robot, UserCircle } from "@phosphor-icons/react";
 import { pairings, type LeagueState } from "@draftweek/shared";
 import { cx } from "@/components/primitives";
 
@@ -38,7 +38,7 @@ export function MatchupsPreview({ league }: { league: LeagueState }) {
         {rows.map(([a, b], i) => (
           <li key={i} className={cx("flex items-center gap-3 rounded-tile bg-fill px-4 py-3", (a.name === "You" || b.name === "You") && "ring-1 ring-[var(--accent)]")}>
             <SideLabel side={a} />
-            <Sword size={16} weight="duotone" className="shrink-0 text-fg-mute" aria-label="versus" />
+            <span className="t-label shrink-0 text-[10px] text-fg-mute">vs</span>
             <SideLabel side={b} align="right" />
           </li>
         ))}
