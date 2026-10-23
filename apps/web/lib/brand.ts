@@ -1,0 +1,14 @@
+// The FTL mark as an SVG string, for images rendered on the server (apple icon, share image).
+// Keep in step with app/icon.svg and LogoMark in components/logo.tsx.
+export const MARK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="2" y="5" width="60" height="57" rx="16" fill="#B3471A"/>
+  <rect x="2" y="2" width="60" height="57" rx="16" fill="#FF7A3D"/>
+  <g transform="translate(32 56)" stroke="#15112A" stroke-width="3" stroke-linejoin="round">
+    <g transform="rotate(-30)"><rect x="-10" y="-44" width="20" height="28" rx="4" fill="#5CC8FF"/></g>
+    <g transform="rotate(30)"><rect x="-10" y="-44" width="20" height="28" rx="4" fill="#3DDC97"/></g>
+    <rect x="-11" y="-48" width="22" height="31" rx="4.5" fill="#FFF4E6"/>
+    <path d="M-6 -29.5 L0 -38.5 L6 -29.5 Z" fill="#FF7A3D" stroke-width="2.5"/>
+  </g>
+</svg>`;
+
+export const markDataUrl = () => `data:image/svg+xml;base64,${Buffer.from(MARK_SVG).toString("base64")}`;
