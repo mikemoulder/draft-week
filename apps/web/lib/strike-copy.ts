@@ -9,8 +9,9 @@
 //   2. the user signs Strike's consent message in their wallet
 //   3. POST /auth/builder/verify-signature    Strike links the key to the user's account
 //   4. POST /v2/copy/subscribe, signed        one per trader
-import type { Chain } from "@draftweek/shared";
-import type { ConnectedWallet } from "@/lib/wallets";
+import type { Chain, StrikeAccount } from "@draftweek/shared";
+import { api } from "@/lib/api";
+import { connectWallet, type ConnectedWallet, type WalletOption } from "@/lib/wallets";
 
 const STRIKE = "https://api.strikefinance.org";
 /** FTL's registered builder code (case-sensitive). Public: Strike shows it in the wallet's consent message. */
@@ -63,7 +64,11 @@ const hex = (bytes: ArrayBuffer | Uint8Array) => Array.from(new Uint8Array(bytes
 export type Copier = {
   accountId: string;
   subscribe(leadAccountId: string, opts: { amount: number; stopLoss: number }): Promise<void>;
+  stop(subscriptionId: string): Promise<void>;
 };
+
+// One connection per tab: Back your squad and the profile page share it, so the wallet signs once.
+let tabCopier: Copier | null = null;
 
 /**
  * Connects the signed-in wallet to FTL's builder code and returns a copier for this tab.
@@ -96,30 +101,31 @@ export async function connectCopier(wallet: ConnectedWallet, chain: Chain, addre
   const { serverTime } = await strike<{ serverTime: number }>("/v2/time");
   const offset = serverTime - Date.now();
 
-  async function signedPost<T>(path: string, payload: unknown): Promise<T> {
-    const body = JSON.stringify(payload);
+  /** {METHOD}:{PATH}:{TIMESTAMP}:{NONCE}:{SHA-256 of the body}, signed with the tab's key. */
+  async function signedFetch<T>(method: "POST" | "DELETE", path: string, payload?: unknown): Promise<T> {
+    const body = payload === undefined ? "" : JSON.stringify(payload);
     const timestamp = String(Math.floor((Date.now() + offset) / 1000) - 1);
     const nonce = crypto.randomUUID();
     const bodyHash = hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body)));
-    const message = `POST:${path}:${timestamp}:${nonce}:${bodyHash}`;
+    const message = `${method}:${path}:${timestamp}:${nonce}:${bodyHash}`;
     const signature = hex(await crypto.subtle.sign({ name: "Ed25519" }, keys.privateKey, new TextEncoder().encode(message)));
     return strike<T>(path, {
-      method: "POST",
+      method,
       headers: {
-        "Content-Type": "application/json",
+        ...(body ? { "Content-Type": "application/json" } : {}),
         "X-API-Wallet-Public-Key": publicKey,
         "X-API-Wallet-Signature": signature,
         "X-API-Wallet-Timestamp": timestamp,
         "X-API-Wallet-Nonce": nonce,
       },
-      body,
+      body: body || undefined,
     });
   }
 
-  return {
+  tabCopier = {
     accountId: connected.account_id,
     async subscribe(leadAccountId, { amount, stopLoss }) {
-      await signedPost("/v2/copy/subscribe", {
+      await signedFetch("POST", "/v2/copy/subscribe", {
         lead_account_id: leadAccountId,
         platform: "strike",
         copy_mode: "fixed_ratio",
@@ -129,5 +135,72 @@ export async function connectCopier(wallet: ConnectedWallet, chain: Chain, addre
         ...(stopLoss > 0 ? { stop_loss_amount: stopLoss.toFixed(2) } : {}),
       });
     },
+    async stop(subscriptionId) {
+      // Strike closes the copy's positions at market and pays any profit share.
+      await signedFetch("DELETE", `/v2/copy/subscribe/${encodeURIComponent(subscriptionId)}`);
+    },
   };
+  return tabCopier;
+}
+
+/** The copier this tab already connected for `accountId`, if any. */
+export function existingCopier(accountId: string): Copier | null {
+  return tabCopier?.accountId === accountId ? tabCopier : null;
+}
+
+/**
+ * Connect `option` as the signed-in player: the wallet must hold the Strike account the player
+ * signed in with. Reuses this tab's connection when there is one.
+ */
+export async function copierFor(option: WalletOption, chain: Chain, strikeAccountId: string): Promise<Copier> {
+  const existing = existingCopier(strikeAccountId);
+  if (existing) return existing;
+  const wallet = await connectWallet(option);
+  const known = await api.post<StrikeAccount[]>("/strike/accounts", { chain, addresses: wallet.addresses.slice(0, 20) });
+  const mine = known.find((k) => k.accountId === strikeAccountId);
+  if (!mine) throw new Error("This wallet is not the one you signed in with. Switch accounts in your wallet and try again.");
+  return connectCopier(wallet, chain, mine.address, mine.input);
+}
+
+export type ActiveCopy = {
+  id: string;
+  leadAccountId: string;
+  leadName: string | null;
+  leadAvatarUrl: string | null;
+  amount: number;
+  pnl: number;
+  stopLoss: number | null;
+  since: number;
+  fills: number;
+};
+
+/** The account's running copies, newest first. A public read. */
+export async function activeCopies(accountId: string): Promise<ActiveCopy[]> {
+  const r = await strike<{
+    subscriptions: {
+      subscription_id: string;
+      lead_account_id: string;
+      lead_nickname?: string;
+      lead_avatar_url?: string;
+      copy_amount?: string;
+      pnl?: string;
+      stop_loss_amount?: string;
+      status: string;
+      created_at_ms: number;
+      filled_order_count?: number;
+    }[];
+  }>(`/v2/copy/subscriptions?account_id=${encodeURIComponent(accountId)}&status=active`);
+  return r.subscriptions
+    .filter((x) => x.status === "active")
+    .map((x) => ({
+      id: x.subscription_id,
+      leadAccountId: x.lead_account_id,
+      leadName: x.lead_nickname || null,
+      leadAvatarUrl: x.lead_avatar_url ? (x.lead_avatar_url.startsWith("http") ? x.lead_avatar_url : `https://${x.lead_avatar_url}`) : null,
+      amount: Number(x.copy_amount ?? 0),
+      pnl: Number(x.pnl ?? 0),
+      stopLoss: x.stop_loss_amount ? Number(x.stop_loss_amount) : null,
+      since: x.created_at_ms,
+      fills: x.filled_order_count ?? 0,
+    }));
 }

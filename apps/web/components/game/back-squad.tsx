@@ -2,15 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowSquareOut, Check, CheckCircle, Copy, HandCoins, Wallet, WarningCircle, X } from "@phosphor-icons/react";
-import type { LeagueState, StrikeAccount } from "@draftweek/shared";
+import type { LeagueState } from "@draftweek/shared";
 import { TraderAvatar } from "@/components/cards/avatar";
 import { StyleIcon } from "@/components/cards/style-icon";
 import { cx } from "@/components/primitives";
 import { useSession } from "@/components/session";
-import { api } from "@/lib/api";
-import { BUILDER_CODE, connectCopier, copierState, copyLimits, StrikeError, type CopyLimits } from "@/lib/strike-copy";
+import { BUILDER_CODE, copierFor, copierState, copyLimits, StrikeError, type CopyLimits } from "@/lib/strike-copy";
 import { STYLE_META } from "@/lib/styles";
-import { connectWallet, detectWallets, requestEvmWallets, type WalletOption } from "@/lib/wallets";
+import { detectWallets, requestEvmWallets, type WalletOption } from "@/lib/wallets";
 
 const STRIKE_APP = "https://app.strikefinance.org";
 
@@ -99,11 +98,7 @@ function BackSquadSheet({ league, ids, onClose }: { league: LeagueState; ids: st
     setBusy(true);
     setError(null);
     try {
-      const wallet = await connectWallet(option);
-      const known = await api.post<StrikeAccount[]>("/strike/accounts", { chain, addresses: wallet.addresses.slice(0, 20) });
-      const mine = known.find((k) => k.accountId === strikeId);
-      if (!mine) throw new Error("This wallet is not the one you signed in with. Switch accounts in your wallet and try again.");
-      const copier = await connectCopier(wallet, chain, mine.address, mine.input);
+      const copier = await copierFor(option, chain, strikeId);
       for (const id of picked) {
         if (rows[id]?.state === "done") continue;
         setRows((r) => ({ ...r, [id]: { state: "copying" } }));
